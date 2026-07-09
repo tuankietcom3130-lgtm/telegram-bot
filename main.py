@@ -113,7 +113,11 @@ async def is_user_in_group(context: ContextTypes.DEFAULT_TYPE, user_id: int, gro
     try:
         member = await context.bot.get_chat_member(chat_id=group_id, user_id=user_id)
         # Check if user is active member (not kicked or left)
-        if member.status in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR, ChatMember.CREATOR]:
+        # In python-telegram-bot v21+, check member.status instead of using constants
+        if member.status in ['member', 'administrator', 'creator', 'restricted']:
+            # For restricted members, check if they can send messages
+            if member.status == 'restricted':
+                return member.can_send_messages if hasattr(member, 'can_send_messages') else False
             return True
         return False
     except TelegramError as e:
@@ -555,3 +559,4 @@ async def main() -> None:
 if __name__ == '__main__':
     import asyncio
     asyncio.run(main())
+
