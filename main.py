@@ -116,7 +116,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]
     ]
     await update.effective_message.reply_text(
-        "👋 Xin chào! Vui lòng chọn ngôn ngữ để bắt đầu / Please select your preferred language:", 
+        "👋 Xin chào! \nVui lòng chọn ngôn ngữ để bắt đầu \n----------\n👋 Welcome! Please select your preferred language:", 
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
