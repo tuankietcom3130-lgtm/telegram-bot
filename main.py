@@ -550,13 +550,9 @@ async def main() -> None:
     print(f"Files directory structure created at: {BASE_FILES_DIR}")
     print("Press Ctrl+C to stop the bot")
     
-    async with application:
-        await application.initialize()
-        await application.start()
-        await application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+    await application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == '__main__':
     import asyncio
     asyncio.run(main())
-
