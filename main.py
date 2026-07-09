@@ -132,7 +132,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
     # Check if user is in the group
     if GROUP_ID == 0:
-        await update.message.reply_html(
+        await update.effective_message.reply_html(
             f"Hi {user.mention_html()}! 👋\n"
             f"⚠️ GROUP_ID is not configured. Please set GROUP_ID in your .env file."
         )
@@ -141,7 +141,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     is_member = await is_user_in_group(context, user.id, GROUP_ID)
     
     if not is_member:
-        await update.message.reply_html(
+        await update.effective_message.reply_html(
             f"Hi {user.mention_html()}! 👋\n"
             f"❌ Sorry, you need to be a member of our group to use this bot.\n"
             f"Please join the group first, then use this bot."
@@ -165,7 +165,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     # User is a member, show welcome message with buttons
-    await update.message.reply_html(
+    await update.effective_message.reply_html(
         f"Hi {user.mention_html()}! 👋\n"
         f"✅ Welcome! You're a member of our group.\n\n"
         f"Choose an action below:",
@@ -181,7 +181,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     is_member = await is_user_in_group(context, update.effective_user.id, GROUP_ID)
     
     if not is_member:
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "❌ You need to be a member of our group to access this bot."
         )
         return
@@ -206,7 +206,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     keyboard = [[InlineKeyboardButton("◀️ Back to Menu", callback_data="mode_start")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await update.message.reply_text(help_text, parse_mode='Markdown', reply_markup=reply_markup)
+    await update.effective_message.reply_text(help_text, parse_mode='Markdown', reply_markup=reply_markup)
 
 
 async def preferences_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -217,7 +217,7 @@ async def preferences_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     is_member = await is_user_in_group(context, update.effective_user.id, GROUP_ID)
     
     if not is_member:
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "❌ You need to be a member of our group to set preferences."
         )
         return
@@ -234,7 +234,7 @@ async def preferences_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     
     preference_text = "📋 **Select your preferred file types:**\n\n💡 Click multiple buttons to add multiple preferences"
     
-    await update.message.reply_text(preference_text, parse_mode='Markdown', reply_markup=reply_markup)
+    await update.effective_message.reply_text(preference_text, parse_mode='Markdown', reply_markup=reply_markup)
 
 
 async def set_preference_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -274,7 +274,7 @@ async def view_preferences_mode(update: Update, context: ContextTypes.DEFAULT_TY
     is_member = await is_user_in_group(context, update.effective_user.id, GROUP_ID)
     
     if not is_member:
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "❌ You need to be a member of our group to view preferences."
         )
         return
@@ -292,7 +292,7 @@ async def view_preferences_mode(update: Update, context: ContextTypes.DEFAULT_TY
     keyboard = [[InlineKeyboardButton("◀️ Back to Menu", callback_data="mode_start")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await update.message.reply_text(pref_text, parse_mode='Markdown', reply_markup=reply_markup)
+    await update.effective_message.reply_text(pref_text, parse_mode='Markdown', reply_markup=reply_markup)
 
 
 async def list_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -303,7 +303,7 @@ async def list_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     is_member = await is_user_in_group(context, update.effective_user.id, GROUP_ID)
     
     if not is_member:
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "❌ You need to be a member of our group to access files."
         )
         return
@@ -313,7 +313,7 @@ async def list_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if user_id not in preferences or not preferences[user_id]['file_types']:
         keyboard = [[InlineKeyboardButton("◀️ Back to Menu", callback_data="mode_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "❌ You haven't set any file type preferences yet.\n"
             "Use the preferences mode to set them first.",
             reply_markup=reply_markup
@@ -326,7 +326,7 @@ async def list_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not available_files:
         keyboard = [[InlineKeyboardButton("◀️ Back to Menu", callback_data="mode_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "📭 No files available for your preferences at the moment.\n"
             "Please check back later or contact the administrator.",
             reply_markup=reply_markup
@@ -348,7 +348,7 @@ async def list_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await update.message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
+    await update.effective_message.reply_text(message, parse_mode='Markdown', reply_markup=reply_markup)
 
 
 async def send_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -359,7 +359,7 @@ async def send_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     is_member = await is_user_in_group(context, update.effective_user.id, GROUP_ID)
     
     if not is_member:
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "❌ You need to be a member of our group to receive files."
         )
         return
@@ -369,7 +369,7 @@ async def send_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if user_id not in preferences or not preferences[user_id]['file_types']:
         keyboard = [[InlineKeyboardButton("◀️ Back to Menu", callback_data="mode_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "❌ You haven't set any file type preferences yet.\n"
             "Use the preferences mode to set them first.",
             reply_markup=reply_markup
@@ -382,14 +382,14 @@ async def send_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not available_files:
         keyboard = [[InlineKeyboardButton("◀️ Back to Menu", callback_data="mode_start")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             "📭 No files available for your preferences at the moment.",
             reply_markup=reply_markup
         )
         return
     
     # Send files to user
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         "📤 Preparing to send files...\n"
         "This may take a moment depending on the file sizes."
     )
@@ -445,7 +445,7 @@ async def send_files_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if errors > 0:
         summary += f"\n⚠️ Failed to send {errors} file(s)"
     
-    await update.message.reply_text(summary, reply_markup=reply_markup)
+    await update.effective_message.reply_text(summary, reply_markup=reply_markup)
 
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -550,9 +550,7 @@ async def main() -> None:
     print(f"Files directory structure created at: {BASE_FILES_DIR}")
     print("Press Ctrl+C to stop the bot")
     
-    await application.run_polling(allowed_updates=Update.ALL_TYPES)
-
+   application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
+    main()
