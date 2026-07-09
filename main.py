@@ -527,17 +527,31 @@ async def post_init(application: Application) -> None:
 
 
 def main() -> None:
-    # ... (các đoạn code khác giữ nguyên)
+    """Start the bot."""
+    # Create the Application (Dòng này cực kỳ quan trọng, không có nó sẽ báo lỗi như bạn vừa gặp)
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    # Add command handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
     
+    # Add callback query handler for button presses
+    application.add_handler(CallbackQueryHandler(button_callback))
+
+    # Log all errors
+    application.add_error_handler(error_handler)
+    
+    # Post init
+    application.post_init = post_init
+
+    # Run the bot
     print("🤖 Bot is starting...")
     print(f"GROUP_ID configured: {GROUP_ID if GROUP_ID != 0 else 'NOT SET'}")
     print(f"Files directory structure created at: {BASE_FILES_DIR}")
     print("Press Ctrl+C to stop the bot")
     
-    # Đã bỏ chữ 'await' ở đây
+    # Chạy bot (không có chữ await)
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
-
 if __name__ == '__main__':
-    # Đã bỏ thư viện asyncio và gọi hàm main() trực tiếp
     main()
