@@ -145,7 +145,7 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # ================= CORE FLOW =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [[InlineKeyboardButton("🇻🇳 Tiếng Việt", callback_data="lang_vi")], [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]]
-    await update.effective_message.reply_text("👋 Xin chào! \nVui lòng chọn ngôn ngữ để bắt đầu\n👋Welcome! \nPlease select your preferred language:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.effective_message.reply_text("👋 Xin chào! \nVui lòng chọn ngôn ngữ để bắt đầu\n----------\n👋Welcome! \nPlease select your preferred language:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def check_and_show_menu(query, context, lang, show_alert=False):
     user = query.from_user
