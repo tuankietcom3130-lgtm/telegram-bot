@@ -14,23 +14,22 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 CHANNEL_ID = int(os.getenv('CHANNEL_ID', 0))
 GROUP_ID = int(os.getenv('GROUP_ID', 0))
+ADMIN_ID = int(os.getenv('ADMIN_ID', 0))
 CHANNEL_URL = os.getenv('CHANNEL_URL', 'https://t.me/')
 GROUP_URL = os.getenv('GROUP_URL', 'https://t.me/')
 
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN is not set.")
 
-# --- CẤU TRÚC DỮ LIỆU MỚI ---
+# --- CẤU TRÚC DỮ LIỆU ---
 BASE_FILES_DIR = "files"
 DATABASE_FILE = os.path.join(BASE_FILES_DIR, "database.txt")
 
 os.makedirs(BASE_FILES_DIR, exist_ok=True)
 if not os.path.exists(DATABASE_FILE):
     with open(DATABASE_FILE, 'w', encoding='utf-8') as f:
-        # Cấu trúc: Tên file = File_ID | Mật khẩu
         f.write("Tên_Theme_Mau.zip=MÃ_FILE_ID_MẪU|123456\n")
 
-# --- HÀM ĐỌC DATABASE ---
 def get_database() -> dict:
     db = {}
     if os.path.exists(DATABASE_FILE):
@@ -45,16 +44,15 @@ def get_database() -> dict:
             logger.error(f"Lỗi đọc file database: {e}")
     return db
 
-# --- TỪ ĐIỂN SONG NGỮ ---
 LANG = {
     'en': {
         'not_configured': "⚠️ Bot missing IDs.",
-        'join_req': "❌ **Access Denied**\nYou must join both our Channel and Group.",
+        'join_req': "❌ <b>Access Denied</b>\nYou must join both our Channel and Group.",
         'btn_channel': "📢 Join Channel",
         'btn_group': "💬 Join Group",
         'btn_verify': "🔄 Verify",
         'verify_fail': "⚠️ You haven't joined both yet!",
-        'main_menu': "✅ **Main Menu**",
+        'main_menu': "✅ <b>Main Menu</b>",
         'btn_themes': "🎨 Theme List",
         'btn_pass': "🔑 Get Passwords",
         'btn_help': "❓ Help",
@@ -64,12 +62,12 @@ LANG = {
     },
     'vi': {
         'not_configured': "⚠️ Bot thiếu ID.",
-        'join_req': "❌ **Chưa cấp quyền**\nBạn cần tham gia cả Kênh và Nhóm để dùng bot.",
+        'join_req': "❌ <b>Chưa cấp quyền</b>\nBạn cần tham gia cả Kênh và Nhóm để dùng bot.",
         'btn_channel': "📢 Vào Kênh",
         'btn_group': "💬 Vào Nhóm",
         'btn_verify': "🔄 Kiểm tra",
         'verify_fail': "⚠️ Bạn chưa tham gia đủ!",
-        'main_menu': "✅ **Menu Chính**",
+        'main_menu': "✅ <b>Menu Chính</b>",
         'btn_themes': "🎨 Danh sách Theme",
         'btn_pass': "🔑 Lấy Mật Khẩu",
         'btn_help': "❓ Trợ giúp",
@@ -83,7 +81,6 @@ def get_text(lang: str, key: str, **kwargs) -> str:
     text = LANG.get(lang, LANG['en']).get(key, f"Missing text: {key}")
     return text.format(**kwargs) if kwargs else text
 
-# --- KIỂM TRA THÀNH VIÊN ---
 async def check_membership(context: ContextTypes.DEFAULT_TYPE, user_id: int, chat_id: int) -> bool:
     try:
         member = await context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
@@ -91,19 +88,25 @@ async def check_membership(context: ContextTypes.DEFAULT_TYPE, user_id: int, cha
     except:
         return False
 
-# --- BỘ TẠO FILE ID TỰ ĐỘNG (Dành cho Admin) ---
+# --- HÀM LẤY FILE ID (CHỈ ADMIN) ---
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.message.from_user.id
+    
+    # KHIÊN BẢO VỆ: Nếu người gửi không phải là Admin, bỏ qua luôn không làm gì cả
+    if user_id != ADMIN_ID:
+        return
+
     doc = update.message.document
     file_id = doc.file_id
     file_name = doc.file_name or "Unknown_File"
     
     reply_text = (
-        f"✅ **Đã lấy File ID thành công!**\n\n"
-        f"Tên file: `{file_name}`\n"
-        f"Mã File ID:\n`{file_id}`\n\n"
-        f"*(Chạm vào mã để copy, sau đó dán vào file database.txt trên GitHub)*"
+        f"✅ <b>Đã lấy File ID thành công!</b>\n\n"
+        f"Tên file: <code>{file_name}</code>\n"
+        f"Mã File ID:\n<code>{file_id}</code>\n\n"
+        f"<i>(Chạm vào mã để copy, sau đó dán vào file database.txt)</i>"
     )
-    await update.message.reply_text(reply_text, parse_mode="Markdown")
+    await update.message.reply_text(reply_text, parse_mode="HTML")
 
 # ================= CORE FLOW =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -140,18 +143,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         
     lang = context.user_data.get('lang', 'en')
 
-    if data == "verify_join" or data == "mode_start":
+    if data in ["verify_join", "mode_start"]:
         if data == "mode_start": await query.answer()
         await check_and_show_menu(query, context, lang, show_alert=(data=="verify_join"))
 
     elif data == "mode_password":
         await query.answer()
         db = get_database()
-        msg = "🔐 **Danh sách Mật khẩu:**\n\n" if db else "📭 Chưa có dữ liệu."
+        msg = "🔐 <b>Danh sách Mật khẩu:</b>\n\n" if db else "📭 Chưa có dữ liệu."
         for name, info in db.items():
-            msg += f"🔸 **{name}:** `{info['pass']}`\n"
+            msg += f"🔸 <b>{name}:</b> <code>{info['pass']}</code>\n"
         keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")]]
-        await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
     elif data == "mode_themes":
         await query.answer()
@@ -163,7 +166,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             
         keyboard = [[InlineKeyboardButton(f"🎨 {name}", callback_data=f"send_{name[:40]}")] for name in db.keys()]
         keyboard.append([InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")])
-        await query.edit_message_text(f"📁 **{get_text(lang, 'btn_themes')}**:\nChọn một file để tải:", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.edit_message_text(f"📁 <b>{get_text(lang, 'btn_themes')}</b>:\nChọn một file để tải:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
     elif data.startswith("send_"):
         short_name = data.split('send_', 1)[1]
@@ -174,14 +177,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await query.answer()
             file_id = db[actual_name]['id']
             file_pass = db[actual_name]['pass']
-            caption_text = f"🎁 **{actual_name}**\n🔑 Pass: `{file_pass}`"
+            # Đổi toàn bộ sang HTML để chống lỗi ký tự lạ
+            caption_text = f"🎁 <b>{actual_name}</b>\n🔑 Pass: <code>{file_pass}</code>"
             
             try:
-                # GỬI BẰNG FILE ID SIÊU TỐC
-                await query.message.reply_document(document=file_id, caption=caption_text, parse_mode="Markdown")
+                await query.message.reply_document(document=file_id, caption=caption_text, parse_mode="HTML")
             except Exception as e:
                 logger.error(f"Lỗi gửi file ID: {e}")
-                await query.message.reply_text("❌ Lỗi: Mã File ID không hợp lệ hoặc file đã bị xóa khỏi hệ thống Telegram.")
+                await query.message.reply_text("❌ Lỗi: Có vẻ mã File ID bạn điền trong database.txt chưa chính xác, hãy kiểm tra lại nhé.")
         else:
             await query.answer(get_text(lang, 'not_found'), show_alert=True)
 
@@ -189,10 +192,9 @@ def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_callback))
-    # Handler mới: Bắt mọi file gửi vào bot để nhả ra File ID
     application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     
-    print("🤖 Bot is starting (File ID Mode)...")
+    print("🤖 Bot is starting (File ID + Admin Guard)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
