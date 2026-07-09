@@ -11,15 +11,17 @@ load_dotenv()
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Lấy dữ liệu từ .env
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 CHANNEL_ID = int(os.getenv('CHANNEL_ID', 0))
 GROUP_ID = int(os.getenv('GROUP_ID', 0))
 ADMIN_ID = int(os.getenv('ADMIN_ID', 0))
+ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', '')
 CHANNEL_URL = os.getenv('CHANNEL_URL', 'https://t.me/')
 GROUP_URL = os.getenv('GROUP_URL', 'https://t.me/')
 
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN is not set.")
+    raise ValueError("Lỗi: Chưa cấu hình BOT_TOKEN trong file .env.")
 
 # --- CẤU TRÚC DỮ LIỆU ---
 BASE_FILES_DIR = "files"
@@ -44,36 +46,37 @@ def get_database() -> dict:
             logger.error(f"Lỗi đọc file database: {e}")
     return db
 
+# --- TỪ ĐIỂN SONG NGỮ (PHONG CÁCH CHUYÊN NGHIỆP) ---
 LANG = {
     'en': {
-        'not_configured': "⚠️ Bot missing IDs.",
-        'join_req': "❌ <b>Access Denied</b>\nYou must join both our Channel and Group.",
-        'btn_channel': "📢 Join Channel",
-        'btn_group': "💬 Join Group",
-        'btn_verify': "🔄 Verify",
-        'verify_fail': "⚠️ You haven't joined both yet!",
-        'main_menu': "✅ <b>Main Menu</b>",
-        'btn_themes': "🎨 Theme List",
-        'btn_pass': "🔑 Get Passwords",
-        'btn_help': "❓ Help",
-        'btn_back': "◀️ Back",
-        'no_themes': "📭 No themes available.",
-        'not_found': "❌ File not found."
+        'not_configured': "⚠️ The system is missing required configurations. Please contact the administrator.",
+        'join_req': "🛑 <b>Access Required</b>\nTo utilize this service, please join our official Channel and Group using the links below. Once joined, click <b>Verify Membership</b>.",
+        'btn_channel': "📢 Official Channel",
+        'btn_group': "💬 Community Group",
+        'btn_verify': "🔄 Verify Membership",
+        'verify_fail': "⚠️ The system could not verify your membership. Please ensure you have joined both groups and try again.",
+        'main_menu': "✅ <b>Main Dashboard</b>\nWelcome to the system. Please select an option below:",
+        'btn_themes': "📁 File Library",
+        'btn_pass': "🔑 Security Credentials",
+        'btn_support': "🎧 Contact Support",
+        'btn_back': "◀️ Return to Dashboard",
+        'no_themes': "📭 The library is currently empty.",
+        'not_found': "❌ The requested file is no longer available in the system."
     },
     'vi': {
-        'not_configured': "⚠️ Bot thiếu ID.",
-        'join_req': "❌ <b>Chưa cấp quyền</b>\nBạn cần tham gia cả Kênh và Nhóm để dùng bot.",
-        'btn_channel': "📢 Vào Kênh",
-        'btn_group': "💬 Vào Nhóm",
-        'btn_verify': "🔄 Kiểm tra",
-        'verify_fail': "⚠️ Bạn chưa tham gia đủ!",
-        'main_menu': "✅ <b>Menu Chính</b>",
-        'btn_themes': "🎨 Danh sách Theme",
-        'btn_pass': "🔑 Lấy Mật Khẩu",
-        'btn_help': "❓ Trợ giúp",
-        'btn_back': "◀️ Quay lại",
-        'no_themes': "📭 Chưa có theme nào.",
-        'not_found': "❌ File không tồn tại."
+        'not_configured': "⚠️ Hệ thống chưa được cấu hình đầy đủ. Vui lòng liên hệ Quản trị viên.",
+        'join_req': "🛑 <b>Yêu Cầu Truy Cập</b>\nĐể sử dụng hệ thống, quý khách vui lòng tham gia Kênh và Nhóm chính thức của chúng tôi. Sau đó, nhấn nút <b>Xác nhận</b>.",
+        'btn_channel': "📢 Kênh Thông Báo",
+        'btn_group': "💬 Nhóm Thảo Luận",
+        'btn_verify': "🔄 Xác Nhận Tham Gia",
+        'verify_fail': "⚠️ Hệ thống chưa ghi nhận bạn tham gia đầy đủ. Vui lòng kiểm tra lại!",
+        'main_menu': "✅ <b>Bảng Điều Khiển</b>\nChào mừng quý khách đến với hệ thống. Vui lòng chọn chức năng:",
+        'btn_themes': "📁 Thư Viện Tệp",
+        'btn_pass': "🔑 Thông Tin Bảo Mật",
+        'btn_support': "🎧 Liên Hệ Hỗ Trợ",
+        'btn_back': "◀️ Trở về Bảng Điều Khiển",
+        'no_themes': "📭 Hệ thống hiện chưa có tệp dữ liệu nào.",
+        'not_found': "❌ Tệp yêu cầu không tồn tại hoặc đã bị gỡ bỏ khỏi máy chủ."
     }
 }
 
@@ -92,7 +95,6 @@ async def check_membership(context: ContextTypes.DEFAULT_TYPE, user_id: int, cha
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.message.from_user.id
     
-    # KHIÊN BẢO VỆ: Nếu người gửi không phải là Admin, bỏ qua luôn không làm gì cả
     if user_id != ADMIN_ID:
         return
 
@@ -101,17 +103,23 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     file_name = doc.file_name or "Unknown_File"
     
     reply_text = (
-        f"✅ <b>Đã lấy File ID thành công!</b>\n\n"
-        f"Tên file: <code>{file_name}</code>\n"
-        f"Mã File ID:\n<code>{file_id}</code>\n\n"
-        f"<i>(Chạm vào mã để copy, sau đó dán vào file database.txt)</i>"
+        f"✅ <b>Hệ thống ghi nhận File ID thành công</b>\n\n"
+        f"Tên tệp: <code>{file_name}</code>\n"
+        f"Mã định danh (File ID):\n<code>{file_id}</code>\n\n"
+        f"<i>(Chạm vào mã để sao chép, sau đó cập nhật vào cơ sở dữ liệu database.txt)</i>"
     )
     await update.message.reply_text(reply_text, parse_mode="HTML")
 
 # ================= CORE FLOW =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [[InlineKeyboardButton("🇻🇳 Tiếng Việt", callback_data="lang_vi")], [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]]
-    await update.effective_message.reply_text("👋 Welcome! Chọn ngôn ngữ / Select language:", reply_markup=InlineKeyboardMarkup(keyboard))
+    keyboard = [
+        [InlineKeyboardButton("🇻🇳 Tiếng Việt", callback_data="lang_vi")], 
+        [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]
+    ]
+    await update.effective_message.reply_text(
+        "Kính chào quý khách! Vui lòng chọn ngôn ngữ / Please select your preferred language:", 
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 async def check_and_show_menu(query, context, lang, show_alert=False):
     user = query.from_user
@@ -121,14 +129,18 @@ async def check_and_show_menu(query, context, lang, show_alert=False):
             [InlineKeyboardButton(get_text(lang, 'btn_channel'), url=CHANNEL_URL), InlineKeyboardButton(get_text(lang, 'btn_group'), url=GROUP_URL)],
             [InlineKeyboardButton(get_text(lang, 'btn_verify'), callback_data="verify_join")]
         ]
-        await query.edit_message_text(f"Hi {user.mention_html()}!\n{get_text(lang, 'join_req')}", parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.edit_message_text(f"Kính chào {user.mention_html()},\n{get_text(lang, 'join_req')}", parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
         return
+
+    # Khởi tạo đường link liên hệ hỗ trợ
+    support_url = f"https://t.me/{ADMIN_USERNAME}" if ADMIN_USERNAME else f"tg://user?id={ADMIN_ID}"
 
     keyboard = [
         [InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],
         [InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],
+        [InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)]
     ]
-    await query.edit_message_text(f"Hi {user.mention_html()}!\n{get_text(lang, 'main_menu')}", parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+    await query.edit_message_text(f"Kính chào {user.mention_html()},\n{get_text(lang, 'main_menu')}", parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -150,7 +162,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif data == "mode_password":
         await query.answer()
         db = get_database()
-        msg = "🔐 <b>Danh sách Mật khẩu:</b>\n\n" if db else "📭 Chưa có dữ liệu."
+        msg = "🔐 <b>Thông tin Bảo mật / Security Credentials:</b>\n\n" if db else "📭 Hệ thống chưa có dữ liệu."
         for name, info in db.items():
             msg += f"🔸 <b>{name}:</b> <code>{info['pass']}</code>\n"
         keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")]]
@@ -164,9 +176,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await query.edit_message_text(get_text(lang, 'no_themes'), reply_markup=InlineKeyboardMarkup(keyboard))
             return
             
-        keyboard = [[InlineKeyboardButton(f"🎨 {name}", callback_data=f"send_{name[:40]}")] for name in db.keys()]
+        keyboard = [[InlineKeyboardButton(f"📄 {name}", callback_data=f"send_{name[:40]}")] for name in db.keys()]
         keyboard.append([InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")])
-        await query.edit_message_text(f"📁 <b>{get_text(lang, 'btn_themes')}</b>:\nChọn một file để tải:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        await query.edit_message_text(f"📁 <b>{get_text(lang, 'btn_themes')}</b>:\nVui lòng chọn tệp cần xuất:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
     elif data.startswith("send_"):
         short_name = data.split('send_', 1)[1]
@@ -177,14 +189,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await query.answer()
             file_id = db[actual_name]['id']
             file_pass = db[actual_name]['pass']
-            # Đổi toàn bộ sang HTML để chống lỗi ký tự lạ
-            caption_text = f"🎁 <b>{actual_name}</b>\n🔑 Pass: <code>{file_pass}</code>"
+            caption_text = f"📦 <b>{actual_name}</b>\n🔑 Mật khẩu (Pass): <code>{file_pass}</code>"
             
             try:
                 await query.message.reply_document(document=file_id, caption=caption_text, parse_mode="HTML")
             except Exception as e:
-                logger.error(f"Lỗi gửi file ID: {e}")
-                await query.message.reply_text("❌ Lỗi: Có vẻ mã File ID bạn điền trong database.txt chưa chính xác, hãy kiểm tra lại nhé.")
+                logger.error(f"Lỗi truy xuất hệ thống tệp: {e}")
+                await query.message.reply_text("❌ Hệ thống gặp sự cố khi truy xuất tệp dữ liệu. Vui lòng thử lại sau.")
         else:
             await query.answer(get_text(lang, 'not_found'), show_alert=True)
 
@@ -194,7 +205,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     
-    print("🤖 Bot is starting (File ID + Admin Guard)...")
+    print("🤖 Hệ thống Bot đang khởi chạy (Phiên bản Doanh nghiệp)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
