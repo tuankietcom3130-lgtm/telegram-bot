@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Telegram Bot with group membership checking and file sharing based on user preferences
-Features interactive buttons for mode switching
+Built for python-telegram-bot v21+
 """
 
 import logging
@@ -517,7 +517,12 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
 
 
-def main() -> None:
+async def post_init(application: Application) -> None:
+    """Post init function to set up the bot."""
+    logger.info("Bot initialized successfully")
+
+
+async def main() -> None:
     """Start the bot."""
     # Create the Application
     application = Application.builder().token(BOT_TOKEN).build()
@@ -531,6 +536,9 @@ def main() -> None:
 
     # Log all errors
     application.add_error_handler(error_handler)
+    
+    # Post init
+    application.post_init = post_init
 
     # Run the bot
     print("🤖 Bot is starting...")
@@ -538,8 +546,12 @@ def main() -> None:
     print(f"Files directory structure created at: {BASE_FILES_DIR}")
     print("Press Ctrl+C to stop the bot")
     
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    async with application:
+        await application.initialize()
+        await application.start()
+        await application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == '__main__':
-    main()
+    import asyncio
+    asyncio.run(main())
