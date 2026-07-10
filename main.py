@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import os
-import httpx  # Thư viện có sẵn để cào dữ liệu qua mạng
+import httpx
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
@@ -28,7 +28,7 @@ if not BOT_TOKEN:
 
 # --- CẤU TRÚC DỮ LIỆU ---
 BASE_FILES_DIR = "files"
-USERS_FILE = os.path.join(BASE_FILES_DIR, "users.txt") # File users vẫn lưu cục bộ trên VPS
+USERS_FILE = os.path.join(BASE_FILES_DIR, "users.txt")
 
 os.makedirs(BASE_FILES_DIR, exist_ok=True)
 if not os.path.exists(USERS_FILE):
@@ -43,7 +43,6 @@ async def get_database() -> dict:
         return db
         
     try:
-        # Tự động lên mạng kết nối với GitHub để lấy nội dung file database.txt mới nhất
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(DATABASE_URL)
             if response.status_code == 200:
@@ -161,7 +160,7 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         f"👥 <b>Tổng số Người dùng:</b> <code>{user_count}</code>\n"
         f"🎨 <b>Tổng số Chủ đề (Theme):</b> <code>{theme_count}</code>\n"
         "━━━━━━━━━━━━━━━━━━━━━\n"
-        "<i>💡 Hệ thống hiện đang đọc dữ liệu trực tiếp từ GitHub Cloud Cloud.</i>"
+        "<i>💡 Hệ thống hiện đang đọc dữ liệu trực tiếp từ GitHub Cloud.</i>"
     )
     await update.message.reply_text(admin_text, parse_mode="HTML")
 
@@ -224,23 +223,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def check_and_show_menu(query, context, lang, show_alert=False):
     user = query.from_user
     track_user(user.id)
-    if not (await check_membership(context, user.id, CHANNEL_ID) and await check_membership(context, user.id, GROUP_ID)):
+    
+    is_member = await check_membership(context, user.id, CHANNEL_ID) and await check_membership(context, user.id, GROUP_ID)
+    
+    if not is_member:
         if show_alert: await query.answer(get_text(lang, 'verify_fail'), show_alert=True)
         keyboard = [
             [InlineKeyboardButton(get_text(lang, 'btn_channel'), url=CHANNEL_URL), InlineKeyboardButton(get_text(lang, 'btn_group'), url=GROUP_URL)],
             [InlineKeyboardButton(get_text(lang, 'btn_verify'), callback_data="verify_join")]
         ]
-        await query.edit_message_text(f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'join_req')}", parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
-        return
-
-    support_url = f"https://t.me/{ADMIN_USERNAME}" if ADMIN_USERNAME else f"tg://user?id={ADMIN_ID}"
-    keyboard = [
-        [InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],
-        [InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],
-        [InlineKeyboardButton(get_text(lang, 'btn_guide'), callback_data="mode_guide")],
-        [InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)]
-    ]
-    await query.edit_message_text(f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'main_menu')}", parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+        msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'join_req')}"
+    else:
+        support_url = f"https://t.me/{ADMIN_USERNAME}" if ADMIN_USERNAME else f"tg://user?id={ADMIN_ID}"
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],
+            [InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],
+            [InlineKeyboardButton(get_text(lang, 'btn_guide'), callback_data="mode_guide")],
+            [InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)]
+        ]
+        msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'main_menu')}"
+        
+    try:
+        # VÁ LỖI NÚT BACK: Nếu tin nhắn hiện tại chứa Video/Ảnh/File thì phải xóa đi và gửi text mới
+        if query.message.video or query.message.photo or query.message.document:
+            await query.message.delete()
+            await context.bot.send_message(chat_id=query.message.chat_id, text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+        else:
+            await query.edit_message_text(text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+    except Exception as e:
+        logger.error(f"Lỗi hiển thị menu: {e}")
+        # Phương án dự phòng nếu gặp lỗi
+        await context.bot.send_message(chat_id=query.message.chat_id, text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -294,7 +307,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     elif data == "mode_password":
         await query.answer()
-        db = await get_database()  # Thêm await để đọc qua mạng
+        db = await get_database() 
         msg = "🔑 <b>Danh sách mật khẩu giải nén:</b>\n\n" if db else "📭 Chưa có dữ liệu."
         for name, info in db.items():
             msg += f"🔸 <b>{name}:</b> <code>{info['pass']}</code>\n"
@@ -303,7 +316,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     elif data == "mode_themes":
         await query.answer()
-        db = await get_database()  # Thêm await để đọc qua mạng
+        db = await get_database() 
         if not db:
             keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")]]
             await query.edit_message_text(get_text(lang, 'no_themes'), reply_markup=InlineKeyboardMarkup(keyboard))
@@ -315,7 +328,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif data.startswith("sel_"):
         await query.answer()
         short_name = data.split('sel_', 1)[1]
-        db = await get_database()  # Thêm await để đọc qua mạng
+        db = await get_database() 
         actual_name = next((n for n in db.keys() if n.startswith(short_name)), None)
         if actual_name:
             pwd = db[actual_name]['pass']
@@ -331,7 +344,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     elif data.startswith("dl_"):
         short_name = data.split('dl_', 1)[1]
-        db = await get_database()  # Thêm await để đọc qua mạng
+        db = await get_database() 
         actual_name = next((n for n in db.keys() if n.startswith(short_name)), None)
         if actual_name:
             await query.answer()
@@ -347,7 +360,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     elif data.startswith("pv_"):
         short_name = data.split('pv_', 1)[1]
-        db = await get_database()  # Thêm await để đọc qua mạng
+        db = await get_database() 
         actual_name = next((n for n in db.keys() if n.startswith(short_name)), None)
         if actual_name:
             preview_id = db[actual_name]['preview']
@@ -380,7 +393,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media))
     
-    print("🤖 Bot đang chạy (Bản Cloud Database hoàn chỉnh)...")
+    print("🤖 Bot đang chạy (Đã Fix lỗi nút Quay lại từ Video)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
