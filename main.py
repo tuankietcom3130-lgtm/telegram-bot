@@ -125,7 +125,7 @@ LANG = {
         'not_found': "❌ Không tìm thấy file yêu cầu hoặc file đã bị xóa.",
         'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu giải nén:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy mật khẩu và giải nén file theme đúng cách, tránh bị lỗi nhé!",
         'no_guide_video': "⚠️ Hiện tại video hướng dẫn chưa được cập nhật trên hệ thống.",
-        'donate_text': "💖 <b>Cảm ơn bạn đã quan tâm!</b>\n\nSự ủng hộ của bạn là động lực to lớn giúp mình duy trì và phát triển kho Theme.\n\n🏦 <b>Ngân hàng:</b> MB Bank\n💳 <b>STK:</b> <code>123456789</code>\n👤 <b>Tên:</b> NGUYEN VAN A\n\n<i>(Chạm vào STK để copy hoặc quét mã QR bên trên nhé)</i>",
+        'donate_text': "💖 <b>Cảm ơn bạn đã quan tâm!</b>\n\nSự ủng hộ của bạn là động lực to lớn giúp mình duy trì và phát triển kho Theme.\n\n🏦 <b>Ngân hàng:</b> MB Bank\n💳 <b>STK:</b> <code>123456789</code>\n👤 <b>Tên:</b> DO DANG TUAN KIET\n\n<i>(Chạm vào STK để copy hoặc quét mã QR bên trên nhé)</i>",
         'group_alert': "🤖 <b>Kho Theme</b>\n\nĐể xem danh sách, ảnh preview và tải các bản theme mới nhất, bạn vui lòng bấm vào nút bên dưới để trò chuyện riêng với Bot nhé!",
         'btn_chat_bot': "🚀 Trò Chuyện Với Bot",
         'theme_title': "🎨 <b>Theme:</b> <code>{name}</code>\n📅 <b>Cập nhật:</b> <code>{date}</code>\n🔑 <b>Pass giải nén:</b> <code>{pwd}</code>\n\nBạn muốn thực hiện thao tác nào:",
