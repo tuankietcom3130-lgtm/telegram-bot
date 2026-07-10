@@ -116,14 +116,14 @@ LANG = {
         'verify_fail': "⚠️ Xác nhận thất bại. Bạn vui lòng tham gia đủ cả Kênh và Nhóm rồi thử lại nhé!",
         'main_menu': "⚡ <b>Menu Chính</b>\nChào mừng bạn. Vui lòng chọn chức năng cần sử dụng:",
         'btn_themes': "🎨 Danh Sách Theme",
-        'btn_pass': "🔑 Mật Khẩu Giải Nén",
+        'btn_pass': "🔑 Mật Khẩu",
         'btn_guide': "📖 Hướng Dẫn Nhập Pass",
         'btn_donate': "☕ Ủng Hộ",
         'btn_support': "💬 Liên Hệ Admin",
         'btn_back': "◀️ Quay Lại Menu",
         'no_themes': "📭 Hiện tại kho theme chưa có dữ liệu.",
         'not_found': "❌ Không tìm thấy file yêu cầu hoặc file đã bị xóa.",
-        'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu giải nén:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy mật khẩu và nhập mật khẩu theme đúng cách, tránh bị lỗi nhé!",
+        'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy mật khẩu và nhập mật khẩu theme đúng cách, tránh bị lỗi nhé!",
         'no_guide_video': "⚠️ Hiện tại video hướng dẫn chưa được cập nhật trên hệ thống.",
         'donate_text': "💖 <b>Cảm ơn bạn đã quan tâm!</b>\n\nSự ủng hộ của bạn là động lực to lớn giúp mình duy trì và phát triển kho Theme.\n\n🏦 <b>Ngân hàng:</b> MB Bank\n💳 <b>STK:</b> <code>29992992699999</code>\n👤 <b>Tên:</b> DO DANG TUAN KIET\n\n<i>(Chạm vào STK để copy hoặc quét mã QR bên trên nhé)</i>",
         'group_alert': "🤖 <b>Kho Theme</b>\n\nĐể xem danh sách, ảnh preview và tải các bản theme mới nhất, bạn vui lòng bấm vào nút bên dưới để trò chuyện riêng với Bot nhé!",
@@ -380,7 +380,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await query.answer()
             file_id = db[actual_name]['id']
             pwd = db[actual_name]['pass']
-            caption_text = f"🎨 <b>{actual_name}</b>\n🔑 Pass giải nén: <code>{pwd}</code>"
+            caption_text = f"🎨 <b>{actual_name}</b>\n🔑 Pass: <code>{pwd}</code>"
             try:
                 await query.message.reply_document(document=file_id, caption=caption_text, parse_mode="HTML")
             except:
