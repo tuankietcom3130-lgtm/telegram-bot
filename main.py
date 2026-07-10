@@ -144,8 +144,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "<code>/add Tên Theme | Mật Khẩu | Ngày update</code>\n\n"
         "2️⃣ <b>Thêm ảnh Preview:</b> Gửi ảnh -> Trả lời (Reply) ảnh đó bằng lệnh:\n"
         "<code>/addpv Tên_Theme_Cũ</code>\n\n"
-        "3️⃣ <b>Thống kê kho:</b> /admin\n"
-        "4️⃣ <b>Cấu hình ngôn ngữ nhóm:</b> /langs"
+        "3️⃣ <b>Xóa Theme:</b> Gõ trực tiếp lệnh:\n"
+        "<code>/del Tên_Theme_Cần_Xóa</code>\n\n"
+        "4️⃣ <b>Thống kê kho:</b> /admin\n"
+        "5️⃣ <b>Cấu hình ngôn ngữ nhóm:</b> /langs"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
@@ -183,17 +185,41 @@ async def langs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-# --- HỆ THỐNG XỬ LÝ MEDIA / LỆNH THÊM TỰ ĐỘNG CHO ADMIN ---
+# --- HỆ THỐNG XỬ LÝ MEDIA / LỆNH THÊM & XÓA TỰ ĐỘNG CHO ADMIN ---
 async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     if user_id != ADMIN_ID: return
 
-    # Lấy text từ lệnh thường, từ chú thích (caption), hoặc từ tin nhắn đang được Reply
     text = update.message.text or update.message.caption or ""
-    # Nếu tin nhắn này đang trả lời một tin nhắn khác, thì mục tiêu xử lý (file/ảnh) là tin nhắn bị trả lời
     target_msg = update.message.reply_to_message if update.message.reply_to_message else update.message
 
-    if text.startswith("/addpv"):
+    # TÍNH NĂNG XÓA THEME
+    if text.startswith("/del"):
+        theme_to_delete = text.replace("/del", "").strip()
+        if not theme_to_delete:
+            await update.message.reply_text("❌ Cú pháp sai! Vui lòng gõ:\n<code>/del Tên_Theme_Cần_Xóa</code>", parse_mode="HTML")
+            return
+            
+        lines = []
+        deleted = False
+        if os.path.exists(DATABASE_FILE):
+            with open(DATABASE_FILE, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                
+        with open(DATABASE_FILE, 'w', encoding='utf-8') as f:
+            for line in lines:
+                if line.startswith(theme_to_delete + "="):
+                    deleted = True
+                else:
+                    f.write(line)
+                    
+        if deleted:
+            await update.message.reply_text(f"🗑️ <b>Đã xóa thành công</b> theme: <code>{theme_to_delete}</code> khỏi hệ thống!", parse_mode="HTML")
+        else:
+            await update.message.reply_text(f"❌ <b>Thất bại:</b> Không tìm thấy theme có tên <code>{theme_to_delete}</code> trong dữ liệu.", parse_mode="HTML")
+
+    # TÍNH NĂNG THÊM ẢNH PREVIEW
+    elif text.startswith("/addpv"):
         if not target_msg.photo:
             await update.message.reply_text("❌ Hãy Reply vào tin nhắn có chứa ảnh!")
             return
@@ -212,7 +238,6 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
                         if name.strip() == theme_name_target:
                             parts = rest.split('|')
                             old_pv = parts[2].strip() if len(parts) > 2 else "None"
-                            # Hỗ trợ cộng dồn ảnh
                             new_pv = target_msg.photo[-1].file_id if old_pv.lower() == 'none' else f"{old_pv},{target_msg.photo[-1].file_id}"
                             
                             f.write(f"{name}={parts[0].strip()}|{parts[1].strip() if len(parts)>1 else 'None'}|{new_pv}|{parts[3].strip() if len(parts)>3 else 'Đang cập nhật'}\n")
@@ -229,6 +254,7 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             await update.message.reply_text(f"❌ Lỗi xử lý liên kết ảnh: {e}")
             
+    # TÍNH NĂNG THÊM THEME MỚI
     elif text.startswith("/add"):
         if not target_msg.document:
             await update.message.reply_text("❌ Hãy Reply vào tin nhắn có chứa file (.mtz/.zip)!")
@@ -254,7 +280,7 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await update.message.reply_text(f"❌ Cú pháp sai! Vui lòng điền đúng chuẩn:\n<code>/add Tên Theme | Mật khẩu | Ngày</code>", parse_mode="HTML")
             
     else:
-        # Nếu chỉ gửi media bình thường, tự động nhả ID như cũ
+        # Nhả ID khi Admin gửi media không kèm lệnh
         if update.message.document:
             await update.message.reply_text(f"✅ <b>Mã File ID (Tệp):</b>\n<code>{update.message.document.file_id}</code>", parse_mode="HTML")
         elif update.message.photo:
@@ -265,7 +291,6 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # ================= CORE FLOW USER =================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # Bỏ qua nếu lệnh được gõ trong nhóm
     if update.effective_chat.type in ['group', 'supergroup']:
         return 
 
@@ -340,7 +365,6 @@ async def check_and_show_menu(query, context, lang, show_alert=False):
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'main_menu')}"
         
     try:
-        # Xóa media hiện tại nếu chuyển đổi menu
         if query.message.video or query.message.photo or query.message.document:
             await query.message.delete()
             await context.bot.send_message(chat_id=query.message.chat_id, text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
@@ -515,7 +539,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.COMMAND | filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media))
     
-    print("🤖 Bot đang chạy (Bản Đầy Đủ + Hỗ Trợ Reply Admin)...")
+    print("🤖 Bot đang chạy (Bản FULL + Đã cập nhật chức năng XÓA THEME)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
