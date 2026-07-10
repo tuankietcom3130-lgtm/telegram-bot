@@ -66,10 +66,15 @@ def track_user(user_id: int):
         with open(USERS_FILE, 'a', encoding='utf-8') as f:
             f.write(f"{user_id}\n")
 
+# Hàm đếm số lượng người dùng chuẩn xác tuyệt đối, loại bỏ dòng trống và ID trùng lặp
 def get_user_count() -> int:
     if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
-            return len(f.read().splitlines())
+        try:
+            with open(USERS_FILE, 'r', encoding='utf-8') as f:
+                lines = [line.strip() for line in f if line.strip()]
+                return len(set(lines))
+        except Exception as e:
+            logger.error(f"Lỗi đếm số lượng user: {e}")
     return 0
 
 # --- TỪ ĐIỂN SONG NGỮ ---
@@ -151,6 +156,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
+# Lệnh /admin nâng cấp hiển thị chi tiết tên các theme trong hệ thống
 async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     if user_id != ADMIN_ID: return
@@ -162,13 +168,23 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     theme_count = len(db_data)
     user_count = get_user_count()
 
+    # Tạo danh sách tên chi tiết các theme
+    theme_list_text = ""
+    if db_data:
+        for i, (name, info) in enumerate(db_data.items(), 1):
+            theme_list_text += f"{i}. <code>{name}</code> (Pass: <code>{info['pass']}</code> | Ngày: <code>{info['date']}</code>)\n"
+    else:
+        theme_list_text = "<i>(Kho theme hiện tại chưa có dữ liệu)</i>"
+
     admin_text = (
         "👨‍💻 <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ VIÊN</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━\n"
-        f"👥 <b>Tổng số Người dùng:</b> <code>{user_count}</code>\n"
-        f"🎨 <b>Tổng số Chủ đề (Theme):</b> <code>{theme_count}</code>\n"
+        f"👥 <b>Tổng số Người dùng:</b> <code>{user_count}</code> <i>(Chính xác tuyệt đối)</i>\n"
+        f"🎨 <b>Tổng số Chủ đề (Theme):</b> <code>{theme_count}</code>\n\n"
+        f"📋 <b>DANH SÁCH CHI TIẾT TÊN THEME:</b>\n"
+        f"{theme_list_text}"
         "━━━━━━━━━━━━━━━━━━━━━\n"
-        "<i>💡 Hệ thống hiện đang chạy Database cục bộ trực tiếp trên VPS.</i>"
+        "<i>💡 Dữ liệu được cập nhật thời gian thực từ ổ cứng VPS.</i>"
     )
     await update.message.reply_text(admin_text, parse_mode="HTML")
 
@@ -193,7 +209,7 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
     text = update.message.text or update.message.caption or ""
     target_msg = update.message.reply_to_message if update.message.reply_to_message else update.message
 
-    # TÍNH NĂNG XÓA THEME
+    # TÍNH NĂNG XÓA THEME KHỎI DATABASE
     if text.startswith("/del"):
         theme_to_delete = text.replace("/del", "").strip()
         if not theme_to_delete:
@@ -280,7 +296,7 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await update.message.reply_text(f"❌ Cú pháp sai! Vui lòng điền đúng chuẩn:\n<code>/add Tên Theme | Mật khẩu | Ngày</code>", parse_mode="HTML")
             
     else:
-        # Nhả ID khi Admin gửi media không kèm lệnh
+        # Nhả file ID khi gửi media thô
         if update.message.document:
             await update.message.reply_text(f"✅ <b>Mã File ID (Tệp):</b>\n<code>{update.message.document.file_id}</code>", parse_mode="HTML")
         elif update.message.photo:
@@ -539,7 +555,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.COMMAND | filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media))
     
-    print("🤖 Bot đang chạy (Bản FULL + Đã cập nhật chức năng XÓA THEME)...")
+    print("🤖 Bot đang chạy (Bản FULL + Đã nâng cấp đếm User & Hiện Tên Theme)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
