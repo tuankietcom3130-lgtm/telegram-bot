@@ -19,6 +19,7 @@ GROUP_ID = int(os.getenv('GROUP_ID', 0))
 ADMIN_ID = int(os.getenv('ADMIN_ID', 0))
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', '')
 GUIDE_VIDEO_ID = os.getenv('GUIDE_VIDEO_ID', '')
+DONATE_IMAGE_ID = os.getenv('DONATE_IMAGE_ID', '') 
 DATABASE_URL = os.getenv('DATABASE_URL', '')
 CHANNEL_URL = os.getenv('CHANNEL_URL', 'https://t.me/')
 GROUP_URL = os.getenv('GROUP_URL', 'https://t.me/')
@@ -91,12 +92,14 @@ LANG = {
         'btn_themes': "🎨 Theme List",
         'btn_pass': "🔑 Passwords",
         'btn_guide': "📖 Password Guide",
+        'btn_donate': "☕ Support",
         'btn_support': "💬 Contact Admin",
         'btn_back': "◀️ Back to Menu",
         'no_themes': "📭 No themes available at the moment.",
         'not_found': "❌ The requested file was not found.",
         'guide_text': "📖 <b>How to use the extraction password:</b>\n\nPlease watch the tutorial video above carefully to know how to copy the password and extract the theme file properly without errors.",
         'no_guide_video': "⚠️ The tutorial video has not been updated yet. Please contact the admin.",
+        'donate_text': "💖 <b>Thank you for your support!</b>\n\nYour contribution gives me great motivation to maintain and develop this theme library.\n\n🏦 <b>Bank:</b> MB Bank\n💳 <b>Account:</b> <code>123456789</code>\n👤 <b>Name:</b> NGUYEN VAN A\n\n<i>(Or you can scan the QR code above)</i>",
         'group_alert': "🤖 <b>Theme Library</b>\n\nTo view the theme list, check preview images, and download files, please click the button below to chat privately with me!",
         'btn_chat_bot': "🚀 Chat with Bot",
         'theme_title': "🎨 <b>Theme:</b> <code>{name}</code>\n📅 <b>Updated:</b> <code>{date}</code>\n🔑 <b>Pass:</b> <code>{pwd}</code>\n\nSelect an action below:",
@@ -115,12 +118,14 @@ LANG = {
         'btn_themes': "🎨 Danh Sách Theme",
         'btn_pass': "🔑 Mật Khẩu Giải Nén",
         'btn_guide': "📖 Hướng Dẫn Nhập Pass",
+        'btn_donate': "☕ Ủng Hộ",
         'btn_support': "💬 Liên Hệ Admin",
         'btn_back': "◀️ Quay Lại Menu",
         'no_themes': "📭 Hiện tại kho theme chưa có dữ liệu.",
         'not_found': "❌ Không tìm thấy file yêu cầu hoặc file đã bị xóa.",
         'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu giải nén:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy mật khẩu và giải nén file theme đúng cách, tránh bị lỗi nhé!",
         'no_guide_video': "⚠️ Hiện tại video hướng dẫn chưa được cập nhật trên hệ thống.",
+        'donate_text': "💖 <b>Cảm ơn bạn đã quan tâm!</b>\n\nSự ủng hộ của bạn là động lực to lớn giúp mình duy trì và phát triển kho Theme.\n\n🏦 <b>Ngân hàng:</b> MB Bank\n💳 <b>STK:</b> <code>123456789</code>\n👤 <b>Tên:</b> NGUYEN VAN A\n\n<i>(Chạm vào STK để copy hoặc quét mã QR bên trên nhé)</i>",
         'group_alert': "🤖 <b>Kho Theme</b>\n\nĐể xem danh sách, ảnh preview và tải các bản theme mới nhất, bạn vui lòng bấm vào nút bên dưới để trò chuyện riêng với Bot nhé!",
         'btn_chat_bot': "🚀 Trò Chuyện Với Bot",
         'theme_title': "🎨 <b>Theme:</b> <code>{name}</code>\n📅 <b>Cập nhật:</b> <code>{date}</code>\n🔑 <b>Pass giải nén:</b> <code>{pwd}</code>\n\nBạn muốn thực hiện thao tác nào:",
@@ -174,7 +179,7 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text(f"✅ <b>Mã File ID (Tệp):</b>\n<code>{doc.file_id}</code>", parse_mode="HTML")
     elif update.message.photo:
         photo_id = update.message.photo[-1].file_id
-        await update.message.reply_text(f"✅ <b>Mã File ID (Ảnh Preview):</b>\n<code>{photo_id}</code>", parse_mode="HTML")
+        await update.message.reply_text(f"✅ <b>Mã File ID (Ảnh Preview/QR):</b>\n<code>{photo_id}</code>", parse_mode="HTML")
     elif update.message.video:
         video_id = update.message.video.file_id
         await update.message.reply_text(f"✅ <b>Mã File ID (Video Hướng Dẫn):</b>\n<code>{video_id}</code>", parse_mode="HTML")
@@ -235,16 +240,19 @@ async def check_and_show_menu(query, context, lang, show_alert=False):
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'join_req')}"
     else:
         support_url = f"https://t.me/{ADMIN_USERNAME}" if ADMIN_USERNAME else f"tg://user?id={ADMIN_ID}"
+        # --- ĐÃ CHỈNH SỬA BỐ CỤC NÚT Ở ĐÂY ---
         keyboard = [
             [InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],
             [InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],
             [InlineKeyboardButton(get_text(lang, 'btn_guide'), callback_data="mode_guide")],
-            [InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)]
+            [
+                InlineKeyboardButton(get_text(lang, 'btn_donate'), callback_data="mode_donate"),
+                InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)
+            ]
         ]
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'main_menu')}"
         
     try:
-        # VÁ LỖI NÚT BACK: Nếu tin nhắn hiện tại chứa Video/Ảnh/File thì phải xóa đi và gửi text mới
         if query.message.video or query.message.photo or query.message.document:
             await query.message.delete()
             await context.bot.send_message(chat_id=query.message.chat_id, text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
@@ -252,7 +260,6 @@ async def check_and_show_menu(query, context, lang, show_alert=False):
             await query.edit_message_text(text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
     except Exception as e:
         logger.error(f"Lỗi hiển thị menu: {e}")
-        # Phương án dự phòng nếu gặp lỗi
         await context.bot.send_message(chat_id=query.message.chat_id, text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -304,6 +311,29 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await query.message.reply_text("❌ Không thể tải video hướng dẫn lúc này.")
         else:
             await query.answer(get_text(lang, 'no_guide_video'), show_alert=True)
+
+    elif data == "mode_donate":
+        await query.answer()
+        keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")]]
+        if DONATE_IMAGE_ID:
+            try:
+                await query.message.delete()
+                await context.bot.send_photo(
+                    chat_id=query.message.chat_id,
+                    photo=DONATE_IMAGE_ID,
+                    caption=get_text(lang, 'donate_text'),
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+            except Exception as e:
+                logger.error(f"Lỗi gửi ảnh Donate: {e}")
+                await query.message.reply_text("❌ Có lỗi xảy ra khi hiển thị thông tin.")
+        else:
+            await query.edit_message_text(
+                get_text(lang, 'donate_text'),
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="HTML"
+            )
 
     elif data == "mode_password":
         await query.answer()
@@ -393,7 +423,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media))
     
-    print("🤖 Bot đang chạy (Đã Fix lỗi nút Quay lại từ Video)...")
+    print("🤖 Bot đang chạy (Đã tinh chỉnh Menu)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
