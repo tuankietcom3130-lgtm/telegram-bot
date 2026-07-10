@@ -201,6 +201,11 @@ async def langs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 # ================= CORE FLOW (CHẠY ĐƯỢC CẢ TRONG NHÓM & CÁ NHÂN) =================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Kiểm tra nếu là chat nhóm thì bỏ qua
+    if update.effective_chat.type in ['group', 'supergroup']:
+        return 
+
+    # Logic cũ chỉ chạy khi là chat riêng (private)
     track_user(update.effective_user.id)
     keyboard = [
         [InlineKeyboardButton("🇻🇳 Tiếng Việt", callback_data="lang_vi")], 
