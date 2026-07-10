@@ -97,11 +97,9 @@ LANG = {
         'btn_back': "◀️ Back to Menu",
         'no_themes': "📭 No themes available at the moment.",
         'not_found': "❌ The requested file was not found.",
-        'guide_text': "📖 <b>How to use the extraction password:</b>\n\nPlease watch the tutorial video above carefully to know how to copy the password and import theme  properly without errors.",
+        'guide_text': "📖 <b>How to use the password:</b>\n\nPlease watch the tutorial video above carefully to know how to copy and use the password properly without errors.",
         'no_guide_video': "⚠️ The tutorial video has not been updated yet. Please contact the admin.",
         'donate_text': "💖 <b>Thank you for your support!</b>\n\nYour contribution gives me great motivation to maintain and develop this theme library.\n\n🏦 <b>Bank:</b> MB Bank\n💳 <b>Account:</b> <code>29992992699999</code>\n👤 <b>Name:</b> DO DANG TUAN KIET\n\n<i>(Or you can scan the QR code above)</i>",
-        'group_alert': "🤖 <b>Theme Library</b>\n\nTo view the theme list, check preview images, and download files, please click the button below to chat privately with me!",
-        'btn_chat_bot': "🚀 Chat with Bot",
         'theme_title': "🎨 <b>Theme:</b> <code>{name}</code>\n📅 <b>Updated:</b> <code>{date}</code>\n🔑 <b>Pass:</b> <code>{pwd}</code>\n\nSelect an action below:",
         'btn_download': "📥 Download File",
         'btn_view_preview': "🖼️ View Preview",
@@ -123,11 +121,9 @@ LANG = {
         'btn_back': "◀️ Quay Lại Menu",
         'no_themes': "📭 Hiện tại kho theme chưa có dữ liệu.",
         'not_found': "❌ Không tìm thấy file yêu cầu hoặc file đã bị xóa.",
-        'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy mật khẩu và nhập mật khẩu theme đúng cách, tránh bị lỗi nhé!",
+        'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy và sử dụng mật khẩu đúng cách, tránh bị lỗi nhé!",
         'no_guide_video': "⚠️ Hiện tại video hướng dẫn chưa được cập nhật trên hệ thống.",
         'donate_text': "💖 <b>Cảm ơn bạn đã quan tâm!</b>\n\nSự ủng hộ của bạn là động lực to lớn giúp mình duy trì và phát triển kho Theme.\n\n🏦 <b>Ngân hàng:</b> MB Bank\n💳 <b>STK:</b> <code>29992992699999</code>\n👤 <b>Tên:</b> DO DANG TUAN KIET\n\n<i>(Chạm vào STK để copy hoặc quét mã QR bên trên nhé)</i>",
-        'group_alert': "🤖 <b>Kho Theme</b>\n\nĐể xem danh sách, ảnh preview và tải các bản theme mới nhất, bạn vui lòng bấm vào nút bên dưới để trò chuyện riêng với Bot nhé!",
-        'btn_chat_bot': "🚀 Trò Chuyện Với Bot",
         'theme_title': "🎨 <b>Theme:</b> <code>{name}</code>\n📅 <b>Cập nhật:</b> <code>{date}</code>\n🔑 <b>Pass:</b> <code>{pwd}</code>\n\nBạn muốn thực hiện thao tác nào:",
         'btn_download': "📥 Tải File Theme",
         'btn_view_preview': "🖼️ Xem Ảnh Preview",
@@ -184,17 +180,7 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
         video_id = update.message.video.file_id
         await update.message.reply_text(f"✅ <b>Mã File ID (Video Hướng Dẫn):</b>\n<code>{video_id}</code>", parse_mode="HTML")
 
-# --- LỆNH /theme & /langs CHO NHÓM ---
-async def theme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_type = update.effective_chat.type
-    if chat_type in ['group', 'supergroup']:
-        lang = context.chat_data.get('lang', 'vi')
-        bot_username = context.bot.username
-        keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_chat_bot'), url=f"https://t.me/{bot_username}?start=true")]]
-        await update.message.reply_text(get_text(lang, 'group_alert'), parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
-    else:
-        await update.message.reply_text("Vui lòng sử dụng lệnh /start để mở Menu chính.")
-
+# --- LỆNH ĐỔI NGÔN NGỮ NHÓM CỦA ADMIN (/langs) ---
 async def langs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_type = update.effective_chat.type
     user_id = update.effective_user.id
@@ -212,7 +198,8 @@ async def langs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-# ================= CORE FLOW =================
+# ================= CORE FLOW (CHẠY ĐƯỢC CẢ TRONG NHÓM & CÁ NHÂN) =================
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     track_user(update.effective_user.id)
     keyboard = [
@@ -224,6 +211,39 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "🇬🇧 Hello! Please select your preferred language to start using the Bot."
     )
     await update.effective_message.reply_text(welcome_text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def theme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_type = update.effective_chat.type
+    user = update.effective_user
+    track_user(user.id)
+    
+    if chat_type in ['group', 'supergroup']:
+        lang = context.chat_data.get('lang', 'vi')
+    else:
+        lang = context.user_data.get('lang', 'en')
+
+    is_member = await check_membership(context, user.id, CHANNEL_ID) and await check_membership(context, user.id, GROUP_ID)
+    
+    if not is_member:
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, 'btn_channel'), url=CHANNEL_URL), InlineKeyboardButton(get_text(lang, 'btn_group'), url=GROUP_URL)],
+            [InlineKeyboardButton(get_text(lang, 'btn_verify'), callback_data="verify_join")]
+        ]
+        msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'join_req')}"
+    else:
+        support_url = f"https://t.me/{ADMIN_USERNAME}" if ADMIN_USERNAME else f"tg://user?id={ADMIN_ID}"
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],
+            [InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],
+            [InlineKeyboardButton(get_text(lang, 'btn_guide'), callback_data="mode_guide")],
+            [
+                InlineKeyboardButton(get_text(lang, 'btn_donate'), callback_data="mode_donate"),
+                InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)
+            ]
+        ]
+        msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'main_menu')}"
+        
+    await update.message.reply_text(msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def check_and_show_menu(query, context, lang, show_alert=False):
     user = query.from_user
@@ -240,7 +260,6 @@ async def check_and_show_menu(query, context, lang, show_alert=False):
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'join_req')}"
     else:
         support_url = f"https://t.me/{ADMIN_USERNAME}" if ADMIN_USERNAME else f"tg://user?id={ADMIN_ID}"
-        # --- ĐÃ CHỈNH SỬA BỐ CỤC NÚT Ở ĐÂY ---
         keyboard = [
             [InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],
             [InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],
@@ -265,7 +284,12 @@ async def check_and_show_menu(query, context, lang, show_alert=False):
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     data = query.data
-    lang = context.user_data.get('lang', 'en')
+    chat_type = query.message.chat.type
+    
+    if chat_type in ['group', 'supergroup']:
+        lang = context.chat_data.get('lang', 'vi')
+    else:
+        lang = context.user_data.get('lang', 'en')
 
     if data.startswith("setlang_"):
         if query.from_user.id != ADMIN_ID:
@@ -338,7 +362,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif data == "mode_password":
         await query.answer()
         db = await get_database() 
-        msg = "🔑 <b>Danh sách mật khẩu :</b>\n\n" if db else "📭 Chưa có dữ liệu."
+        msg = "🔑 <b>Danh sách mật khẩu:</b>\n\n" if db else "📭 Chưa có dữ liệu."
         for name, info in db.items():
             msg += f"🔸 <b>{name}:</b> <code>{info['pass']}</code>\n"
         keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")]]
@@ -416,6 +440,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
+    
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("theme", theme_command))
     application.add_handler(CommandHandler("langs", langs_command))
@@ -423,7 +448,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media))
     
-    print("🤖 Bot đang chạy (Đã tinh chỉnh Menu)...")
+    print("🤖 Bot đang chạy (Cập nhật Donate & Từ vựng)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
