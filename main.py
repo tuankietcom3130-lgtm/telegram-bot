@@ -143,6 +143,9 @@ async def check_membership(context: ContextTypes.DEFAULT_TYPE, user_id: int, cha
 # --- TÍNH NĂNG ADMIN ---
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.id != ADMIN_ID: return
+    # Chặn hoàn toàn nếu gõ trong nhóm
+    if update.effective_chat.type != 'private': return 
+    
     help_text = (
         "🛠 <b>HƯỚNG DẪN QUẢN TRỊ VIÊN:</b>\n\n"
         "1️⃣ <b>Thêm Theme mới:</b> Gửi file -> Trả lời (Reply) file đó bằng lệnh:\n"
@@ -156,13 +159,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
-# Lệnh /admin nâng cấp hiển thị chi tiết tên các theme trong hệ thống
 async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     if user_id != ADMIN_ID: return
-    if update.effective_chat.type != 'private':
-        await update.message.reply_text("⚠️ Lệnh này chỉ dùng được trong phần chat riêng với Bot.")
-        return
+    # Chặn hoàn toàn (im lặng) nếu gõ trong nhóm
+    if update.effective_chat.type != 'private': return
 
     db_data = get_database()
     theme_count = len(db_data)
@@ -205,6 +206,8 @@ async def langs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     if user_id != ADMIN_ID: return
+    # Chặn không phản hồi lệnh/media của Admin nếu đang ở trong nhóm
+    if update.effective_chat.type != 'private': return
 
     text = update.message.text or update.message.caption or ""
     target_msg = update.message.reply_to_message if update.message.reply_to_message else update.message
@@ -555,7 +558,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.COMMAND | filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media))
     
-    print("🤖 Bot đang chạy (Bản FULL + Đã nâng cấp đếm User & Hiện Tên Theme)...")
+    print("🤖 Bot đang chạy (Đã khóa chức năng Admin trong Nhóm)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
