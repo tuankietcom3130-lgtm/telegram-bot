@@ -97,7 +97,7 @@ LANG = {
         'btn_back': "◀️ Back to Menu",
         'no_themes': "📭 No themes available at the moment.",
         'not_found': "❌ The requested file was not found.",
-        'guide_text': "📖 <b>How to use the extraction password:</b>\n\nPlease watch the tutorial video above carefully to know how to copy the password and extract the theme file properly without errors.",
+        'guide_text': "📖 <b>How to use the extraction password:</b>\n\nPlease watch the tutorial video above carefully to know how to copy the password and import theme  properly without errors.",
         'no_guide_video': "⚠️ The tutorial video has not been updated yet. Please contact the admin.",
         'donate_text': "💖 <b>Thank you for your support!</b>\n\nYour contribution gives me great motivation to maintain and develop this theme library.\n\n🏦 <b>Bank:</b> MB Bank\n💳 <b>Account:</b> <code>29992992699999</code>\n👤 <b>Name:</b> DO DANG TUAN KIET\n\n<i>(Or you can scan the QR code above)</i>",
         'group_alert': "🤖 <b>Theme Library</b>\n\nTo view the theme list, check preview images, and download files, please click the button below to chat privately with me!",
@@ -123,12 +123,12 @@ LANG = {
         'btn_back': "◀️ Quay Lại Menu",
         'no_themes': "📭 Hiện tại kho theme chưa có dữ liệu.",
         'not_found': "❌ Không tìm thấy file yêu cầu hoặc file đã bị xóa.",
-        'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu giải nén:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy mật khẩu và giải nén file theme đúng cách, tránh bị lỗi nhé!",
+        'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu giải nén:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy mật khẩu và nhập mật khẩu theme đúng cách, tránh bị lỗi nhé!",
         'no_guide_video': "⚠️ Hiện tại video hướng dẫn chưa được cập nhật trên hệ thống.",
         'donate_text': "💖 <b>Cảm ơn bạn đã quan tâm!</b>\n\nSự ủng hộ của bạn là động lực to lớn giúp mình duy trì và phát triển kho Theme.\n\n🏦 <b>Ngân hàng:</b> MB Bank\n💳 <b>STK:</b> <code>29992992699999</code>\n👤 <b>Tên:</b> DO DANG TUAN KIET\n\n<i>(Chạm vào STK để copy hoặc quét mã QR bên trên nhé)</i>",
         'group_alert': "🤖 <b>Kho Theme</b>\n\nĐể xem danh sách, ảnh preview và tải các bản theme mới nhất, bạn vui lòng bấm vào nút bên dưới để trò chuyện riêng với Bot nhé!",
         'btn_chat_bot': "🚀 Trò Chuyện Với Bot",
-        'theme_title': "🎨 <b>Theme:</b> <code>{name}</code>\n📅 <b>Cập nhật:</b> <code>{date}</code>\n🔑 <b>Pass giải nén:</b> <code>{pwd}</code>\n\nBạn muốn thực hiện thao tác nào:",
+        'theme_title': "🎨 <b>Theme:</b> <code>{name}</code>\n📅 <b>Cập nhật:</b> <code>{date}</code>\n🔑 <b>Pass:</b> <code>{pwd}</code>\n\nBạn muốn thực hiện thao tác nào:",
         'btn_download': "📥 Tải File Theme",
         'btn_view_preview': "🖼️ Xem Ảnh Preview",
         'no_preview': "⚠️ Bản theme này hiện chưa được cập nhật ảnh preview."
@@ -338,7 +338,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif data == "mode_password":
         await query.answer()
         db = await get_database() 
-        msg = "🔑 <b>Danh sách mật khẩu giải nén:</b>\n\n" if db else "📭 Chưa có dữ liệu."
+        msg = "🔑 <b>Danh sách mật khẩu :</b>\n\n" if db else "📭 Chưa có dữ liệu."
         for name, info in db.items():
             msg += f"🔸 <b>{name}:</b> <code>{info['pass']}</code>\n"
         keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")]]
