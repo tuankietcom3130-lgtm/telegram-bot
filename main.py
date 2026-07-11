@@ -46,7 +46,7 @@ os.makedirs(BASE_FILES_DIR, exist_ok=True)
 if not os.path.exists(DATABASE_FILE): open(DATABASE_FILE, 'w', encoding='utf-8').close()
 if not os.path.exists(USERS_FILE): open(USERS_FILE, 'w', encoding='utf-8').close()
 
-# --- HÀM XỬ LÝ DỮ LIỆU THÔNG MINH ---
+# --- HÀM XỬ LÝ DỮ LIỆU ---
 def get_database() -> dict:
     db = {}
     if os.path.exists(DATABASE_FILE):
@@ -84,7 +84,6 @@ def get_user_count() -> int:
         with open(USERS_FILE, 'r', encoding='utf-8') as f: return len(set([line.strip() for line in f if line.strip()]))
     except: return 0
 
-# --- HÀM TỰ ĐỘNG XÓA TIN NHẮN (CHẠY NGẦM) ---
 async def delete_delayed(bot, chat_id, message_ids, delay):
     await asyncio.sleep(delay)
     for msg_id in message_ids:
@@ -259,12 +258,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def theme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not BOT_ACTIVE and update.effective_user.id != ADMIN_ID: return
     user = update.effective_user
+    chat_type = update.effective_chat.type
     track_user(user.id)
     lang = context.user_data.get('lang')
     if not lang:
         keyboard = [[InlineKeyboardButton("Tiếng Việt 🇻🇳", callback_data="lang_vi"), InlineKeyboardButton("English 🇬🇧", callback_data="lang_en")]]
         sent_msg = await update.message.reply_text(f"Hi {user.mention_html()}! 👋\nChọn ngôn ngữ:", parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
-        if update.effective_chat.type in ['group', 'supergroup']: context.bot_data[f"owner_{sent_msg.message_id}"] = user.id
+        if chat_type in ['group', 'supergroup']: context.bot_data[f"owner_{sent_msg.message_id}"] = user.id
         return
 
     is_member = await check_membership(context, user.id, CHANNEL_ID) and await check_membership(context, user.id, GROUP_ID)
@@ -277,10 +277,11 @@ async def theme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'main_menu')}"
         
     sent_msg = await update.message.reply_text(msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
-    if update.effective_chat.type in ['group', 'supergroup']: context.bot_data[f"owner_{sent_msg.message_id}"] = user.id
+    if chat_type in ['group', 'supergroup']: context.bot_data[f"owner_{sent_msg.message_id}"] = user.id
 
 async def check_and_show_menu(query, context, lang, show_alert=False):
     user = query.from_user
+    chat_type = query.message.chat.type
     is_member = await check_membership(context, user.id, CHANNEL_ID) and await check_membership(context, user.id, GROUP_ID)
     if not is_member:
         if show_alert: await query.answer(get_text(lang, 'verify_fail'), show_alert=True)
@@ -291,9 +292,11 @@ async def check_and_show_menu(query, context, lang, show_alert=False):
         keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes"), InlineKeyboardButton(get_text(lang, 'btn_top'), callback_data="mode_top")],[InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],[InlineKeyboardButton(get_text(lang, 'btn_guide'), callback_data="mode_guide")],[InlineKeyboardButton(get_text(lang, 'btn_donate'), callback_data="mode_donate"), InlineKeyboardButton(get_text(lang, 'btn_support'), url=support)]]
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'main_menu')}"
     try:
+        # VÁ LỖI TẠI ĐÂY: Nếu Menu từ Video/Ảnh trở về, "đóng dấu" lại cho Menu Text mới
         if query.message.video or query.message.photo or query.message.document:
             await query.message.delete()
-            await context.bot.send_message(chat_id=query.message.chat_id, text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+            sent_msg = await context.bot.send_message(chat_id=query.message.chat_id, text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+            if chat_type in ['group', 'supergroup']: context.bot_data[f"owner_{sent_msg.message_id}"] = user.id
         else: await query.edit_message_text(text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
     except: pass
 
@@ -305,10 +308,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     
     if not BOT_ACTIVE and user_id != ADMIN_ID: return await query.answer("⚠️ Bot đang bảo trì!", show_alert=True)
 
+    # --- CHỐT CHẶN BẢO MẬT V4: TỪ CHỐI CẢ NHỮNG MENU BỊ LỖI RAM ---
     if chat_type in ['group', 'supergroup']:
         owner_id = context.bot_data.get(f"owner_{query.message.message_id}")
-        if owner_id and user_id != owner_id and user_id != ADMIN_ID:
-            return await query.answer("❌ Menu này của người khác!", show_alert=True)
+        if not owner_id:
+            return await query.answer("⚠️ Menu này đã cũ (do Bot vừa khởi động lại). Vui lòng gõ /theme để mở menu mới!", show_alert=True)
+        if user_id != owner_id and user_id != ADMIN_ID:
+            return await query.answer("❌ Menu này do người khác gọi. Hãy gõ /theme để tự tạo riêng!", show_alert=True)
 
     lang = context.user_data.get('lang')
     if not lang and not data.startswith("lang_"): lang = context.chat_data.get('lang', 'vi')
@@ -335,7 +341,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await query.answer()
             try:
                 await query.message.delete()
-                await context.bot.send_video(chat_id=query.message.chat_id, video=GUIDE_VIDEO_ID, caption=get_text(lang, 'guide_text'), parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")]]))
+                # VÁ LỖI: Đóng dấu chủ sở hữu cho tin nhắn chứa Video
+                msg = await context.bot.send_video(chat_id=query.message.chat_id, video=GUIDE_VIDEO_ID, caption=get_text(lang, 'guide_text'), parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")]]))
+                if chat_type in ['group', 'supergroup']: context.bot_data[f"owner_{msg.message_id}"] = user_id
             except: pass
         else: await query.answer(get_text(lang, 'no_guide_video'), show_alert=True)
 
@@ -345,7 +353,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if DONATE_IMAGE_ID:
             try:
                 await query.message.delete()
-                await context.bot.send_photo(chat_id=query.message.chat_id, photo=DONATE_IMAGE_ID, caption=get_text(lang, 'donate_text'), parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+                # VÁ LỖI: Đóng dấu chủ sở hữu cho tin nhắn chứa Ảnh Donate
+                msg = await context.bot.send_photo(chat_id=query.message.chat_id, photo=DONATE_IMAGE_ID, caption=get_text(lang, 'donate_text'), parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+                if chat_type in ['group', 'supergroup']: context.bot_data[f"owner_{msg.message_id}"] = user_id
             except: pass
         else: await query.edit_message_text(get_text(lang, 'donate_text'), reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
@@ -364,7 +374,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         keyboard.append([InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")])
         await query.edit_message_text(f"📁 <b>{get_text(lang, 'btn_themes')}</b>:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
-    # --- TOP TRENDING ---
     elif data == "mode_top":
         await query.answer()
         db = get_database()
@@ -389,7 +398,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             await query.edit_message_text(get_text(lang, 'theme_title', name=name, pwd=db[name]['pass'], date=db[name]['date'], count=db[name]['count']), reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
         else: await query.answer(get_text(lang, 'not_found'), show_alert=True)
 
-    # --- TỰ HỦY FILE SAU 3 PHÚT ---
     elif data.startswith("dl_"):
         short_name = data.split('dl_', 1)[1]
         db = get_database() 
@@ -399,13 +407,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             try:
                 db[name]['count'] += 1
                 save_database(db)
-                
-                msg = await query.message.reply_document(
-                    document=db[name]['id'], 
-                    caption=f"🎨 <b>{name}</b>\n🔑 Pass: <code>{db[name]['pass']}</code>\n\n⏳ <i>File sẽ tự động xóa sau 3 phút để bảo vệ bản quyền. Bạn hãy lưu ngay nhé!</i>", 
-                    parse_mode="HTML"
-                )
-                asyncio.create_task(delete_delayed(context.bot, query.message.chat_id, [msg.message_id], 180)) # Hẹn giờ 180s
+                msg = await query.message.reply_document(document=db[name]['id'], caption=f"🎨 <b>{name}</b>\n🔑 Pass: <code>{db[name]['pass']}</code>\n\n⏳ <i>File sẽ tự động xóa sau 3 phút để bảo vệ bản quyền. Bạn hãy lưu ngay nhé!</i>", parse_mode="HTML")
+                asyncio.create_task(delete_delayed(context.bot, query.message.chat_id, [msg.message_id], 180))
             except: pass
         else: await query.answer(get_text(lang, 'not_found'), show_alert=True)
 
@@ -427,7 +430,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                         m_grp = [InputMediaPhoto(media=p, caption=f"🖼️ Ảnh: <b>{name}</b>\n⏳ <i>Tự xóa 60s</i>" if i==0 else None, parse_mode="HTML") for i, p in enumerate(p_ids)]
                         msgs = await context.bot.send_media_group(chat_id=query.message.chat_id, media=m_grp)
                         s_msgs.extend(msgs)
-                    
                     asyncio.create_task(delete_delayed(context.bot, query.message.chat_id, [m.message_id for m in s_msgs], 60))
                 except: pass
             else: await query.answer(get_text(lang, 'no_preview'), show_alert=True)
@@ -441,7 +443,7 @@ def main() -> None:
         CommandHandler("status", status_command), CommandHandler("broadcast", broadcast_command),
         CallbackQueryHandler(button_callback), MessageHandler(filters.COMMAND | filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media)
     ])
-    print("🤖 Bot đang chạy (Đã nâng cấp Top Trending, Broadcast & Tự hủy File)...")
+    print("🤖 Bot đang chạy (Đã nâng cấp Code V4 - Vá lỗ hổng Menu Mới)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__': main()
