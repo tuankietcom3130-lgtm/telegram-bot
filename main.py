@@ -6,12 +6,25 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMe
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from telegram.error import TelegramError
 
-# Load environment variables
-env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
-load_dotenv(env_path)
-logging.basicConfig(...)
+# Config logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Lấy dữ liệu từ .env
+# --- BỘ LỌC TỰ ĐỘNG TIÊU HỦY KÝ TỰ ẨN (BOM) CỦA WINDOWS NOTEPAD ---
+if os.path.exists('.env'):
+    try:
+        with open('.env', 'r', encoding='utf-8-sig') as f:
+            for line in f:
+                if '=' in line and not line.strip().startswith('#'):
+                    key, val = line.split('=', 1)
+                    os.environ[key.strip()] = val.strip()
+    except Exception as e:
+        logger.error(f"Lỗi quét file .env: {e}")
+
+# Load đè lại bằng dotenv để đảm bảo không sót biến
+load_dotenv()
+
+# Lấy dữ liệu đã được làm sạch
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 CHANNEL_ID = int(os.getenv('CHANNEL_ID', 0))
 GROUP_ID = int(os.getenv('GROUP_ID', 0))
@@ -35,11 +48,9 @@ USERS_FILE = os.path.join(BASE_FILES_DIR, "users.txt")
 
 os.makedirs(BASE_FILES_DIR, exist_ok=True)
 if not os.path.exists(DATABASE_FILE):
-    with open(DATABASE_FILE, 'w', encoding='utf-8') as f:
-        pass
+    with open(DATABASE_FILE, 'w', encoding='utf-8') as f: pass
 if not os.path.exists(USERS_FILE):
-    with open(USERS_FILE, 'w', encoding='utf-8') as f:
-        pass
+    with open(USERS_FILE, 'w', encoding='utf-8') as f: pass
 
 # --- HÀM XỬ LÝ DỮ LIỆU ---
 def get_database() -> dict:
@@ -66,8 +77,7 @@ def track_user(user_id: int):
         with open(USERS_FILE, 'r', encoding='utf-8') as f:
             users = set(f.read().splitlines())
     if str(user_id) not in users:
-        with open(USERS_FILE, 'a', encoding='utf-8') as f:
-            f.write(f"{user_id}\n")
+        with open(USERS_FILE, 'a', encoding='utf-8') as f: f.write(f"{user_id}\n")
 
 def get_user_count() -> int:
     if os.path.exists(USERS_FILE):
@@ -75,8 +85,7 @@ def get_user_count() -> int:
             with open(USERS_FILE, 'r', encoding='utf-8') as f:
                 lines = [line.strip() for line in f if line.strip()]
                 return len(set(lines))
-        except Exception as e:
-            logger.error(f"Lỗi đếm số lượng user: {e}")
+        except: pass
     return 0
 
 # --- TỪ ĐIỂN SONG NGỮ ---
@@ -84,50 +93,26 @@ LANG = {
     'en': {
         'not_configured': "⚠️ Bot is not fully configured. Please contact the admin.",
         'join_req': "🔒 <b>Access Required</b>\nTo use this bot, please join our official Channel and Group below, then click <b>Verify</b>.",
-        'btn_channel': "📢 Channel",
-        'btn_group': "💬 Group",
-        'btn_verify': "🔄 Verify Membership",
-        'verify_fail': "⚠️ Verification failed. Please join both and try again.",
-        'main_menu': "⚡ <b>Main Menu</b>\nSelect an option below:",
-        'btn_themes': "🎨 Theme List",
-        'btn_pass': "🔑 Passwords",
-        'btn_guide': "📖 Password Guide",
-        'btn_donate': "☕ Support",
-        'btn_support': "💬 Contact Admin",
-        'btn_back': "◀️ Back to Menu",
-        'no_themes': "📭 No themes available at the moment.",
-        'not_found': "❌ The requested file was not found.",
-        'guide_text': "📖 <b>How to use the password:</b>\n\nPlease watch the tutorial video above carefully to know how to copy and use the password properly without errors.",
+        'btn_channel': "📢 Channel", 'btn_group': "💬 Group", 'btn_verify': "🔄 Verify Membership", 'verify_fail': "⚠️ Verification failed. Please join both and try again.",
+        'main_menu': "⚡ <b>Main Menu</b>\nSelect an option below:", 'btn_themes': "🎨 Theme List", 'btn_pass': "🔑 Passwords", 'btn_guide': "📖 Password Guide",
+        'btn_donate': "☕ Support", 'btn_support': "💬 Contact Admin", 'btn_back': "◀️ Back to Menu", 'no_themes': "📭 No themes available at the moment.",
+        'not_found': "❌ The requested file was not found.", 'guide_text': "📖 <b>How to use the password:</b>\n\nPlease watch the tutorial video above carefully to know how to copy and use the password properly without errors.",
         'no_guide_video': "⚠️ The tutorial video has not been updated yet. Please contact the admin.",
-        'donate_text': "💖 <b>Thank you for your support!</b>\n\nYour contribution gives me great motivation to maintain and develop this theme library.\n\n🏦 <b>Bank:</b> MB Bank\n💳 <b>Account:</b> <code>29992992699999</code>\n👤 <b>Name:</b> DO DANG TUAN KIET\n\n<i>(Or you can scan the QR code above)</i>",
+        'donate_text': "💖 <b>Thank you for your support!</b>\n\n🏦 <b>Bank:</b> MB Bank\n💳 <b>Account:</b> <code>29992992699999</code>\n👤 <b>Name:</b> DO DANG TUAN KIET",
         'theme_title': "🎨 <b>Theme:</b> <code>{name}</code>\n📅 <b>Updated:</b> <code>{date}</code>\n🔑 <b>Pass:</b> <code>{pwd}</code>\n\nSelect an action below:",
-        'btn_download': "📥 Download File",
-        'btn_view_preview': "🖼️ View Preview",
-        'no_preview': "⚠️ This theme does not have a preview image available."
+        'btn_download': "📥 Download File", 'btn_view_preview': "🖼️ View Preview", 'no_preview': "⚠️ This theme does not have a preview image available."
     },
     'vi': {
         'not_configured': "⚠️ Bot chưa được cấu hình đầy đủ. Vui lòng liên hệ Admin.",
         'join_req': "🔒 <b>Yêu cầu truy cập</b>\nĐể tiếp tục sử dụng Bot, bạn vui lòng tham gia vào Kênh và Nhóm hỗ trợ theo liên kết bên dưới. Sau đó nhấn nút <b>Xác nhận</b>.",
-        'btn_channel': "📢 Kênh Thông Báo",
-        'btn_group': "💬 Nhóm Thảo Luận",
-        'btn_verify': "🔄 Xác Nhận Đã Tham Gia",
-        'verify_fail': "⚠️ Xác nhận thất bại. Bạn vui lòng tham gia đủ cả Kênh và Nhóm rồi thử lại nhé!",
-        'main_menu': "⚡ <b>Menu Chính</b>\nChào mừng bạn. Vui lòng chọn chức năng cần sử dụng:",
-        'btn_themes': "🎨 Danh Sách Theme",
-        'btn_pass': "🔑 Mật Khẩu",
-        'btn_guide': "📖 Hướng Dẫn Nhập Pass",
-        'btn_donate': "☕ Ủng Hộ",
-        'btn_support': "💬 Liên Hệ Admin",
-        'btn_back': "◀️ Quay Lại Menu",
-        'no_themes': "📭 Hiện tại kho theme chưa có dữ liệu.",
-        'not_found': "❌ Không tìm thấy file yêu cầu hoặc file đã bị xóa.",
-        'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy và sử dụng mật khẩu đúng cách, tránh bị lỗi nhé!",
+        'btn_channel': "📢 Kênh Thông Báo", 'btn_group': "💬 Nhóm Thảo Luận", 'btn_verify': "🔄 Xác Nhận Đã Tham Gia", 'verify_fail': "⚠️ Xác nhận thất bại. Bạn vui lòng tham gia đủ cả Kênh và Nhóm rồi thử lại nhé!",
+        'main_menu': "⚡ <b>Menu Chính</b>\nChào mừng bạn. Vui lòng chọn chức năng cần sử dụng:", 'btn_themes': "🎨 Danh Sách Theme", 'btn_pass': "🔑 Mật Khẩu", 'btn_guide': "📖 Hướng Dẫn Nhập Pass",
+        'btn_donate': "☕ Ủng Hộ", 'btn_support': "💬 Liên Hệ Admin", 'btn_back': "◀️ Quay Lại Menu", 'no_themes': "📭 Hiện tại kho theme chưa có dữ liệu.",
+        'not_found': "❌ Không tìm thấy file yêu cầu hoặc file đã bị xóa.", 'guide_text': "📖 <b>Hướng dẫn nhập mật khẩu:</b>\n\nBạn vui lòng xem kỹ video hướng dẫn ở trên để biết cách copy và sử dụng mật khẩu đúng cách, tránh bị lỗi nhé!",
         'no_guide_video': "⚠️ Hiện tại video hướng dẫn chưa được cập nhật trên hệ thống.",
-        'donate_text': "💖 <b>Cảm ơn bạn đã quan tâm!</b>\n\nSự ủng hộ của bạn là động lực to lớn giúp mình duy trì và phát triển kho Theme.\n\n🏦 <b>Ngân hàng:</b> MB Bank\n💳 <b>STK:</b> <code>29992992699999</code>\n👤 <b>Tên:</b> DO DANG TUAN KIET\n\n<i>(Chạm vào STK để copy hoặc quét mã QR bên trên nhé)</i>",
+        'donate_text': "💖 <b>Cảm ơn bạn đã quan tâm!</b>\n\n🏦 <b>Ngân hàng:</b> MB Bank\n💳 <b>STK:</b> <code>29992992699999</code>\n👤 <b>Tên:</b> DO DANG TUAN KIET",
         'theme_title': "🎨 <b>Theme:</b> <code>{name}</code>\n📅 <b>Cập nhật:</b> <code>{date}</code>\n🔑 <b>Pass:</b> <code>{pwd}</code>\n\nBạn muốn thực hiện thao tác nào:",
-        'btn_download': "📥 Tải File Theme",
-        'btn_view_preview': "🖼️ Xem Ảnh Preview",
-        'no_preview': "⚠️ Bản theme này hiện chưa được cập nhật ảnh preview."
+        'btn_download': "📥 Tải File Theme", 'btn_view_preview': "🖼️ Xem Ảnh Preview", 'no_preview': "⚠️ Bản theme này hiện chưa được cập nhật ảnh preview."
     }
 }
 
@@ -139,101 +124,59 @@ async def check_membership(context: ContextTypes.DEFAULT_TYPE, user_id: int, cha
     try:
         member = await context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
         return member.status in ['member', 'administrator', 'creator'] or (member.status == 'restricted' and getattr(member, 'can_send_messages', False))
-    except:
-        return False
+    except: return False
 
 # --- TÍNH NĂNG ĐIỀU KHIỂN CỦA ADMIN ---
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_user.id != ADMIN_ID: return
-    if update.effective_chat.type != 'private': return 
-    
+    if update.effective_user.id != ADMIN_ID or update.effective_chat.type != 'private': return
     help_text = (
         "🛠 <b>HƯỚNG DẪN QUẢN TRỊ VIÊN:</b>\n\n"
-        "1️⃣ <b>Thêm Theme mới:</b> Gửi file -> Reply file bằng lệnh:\n"
-        "<code>/add Tên Theme | Mật Khẩu | Ngày update</code>\n\n"
-        "2️⃣ <b>Thêm ảnh Preview:</b> Gửi ảnh -> Reply ảnh bằng lệnh:\n"
-        "<code>/addpv Tên_Theme</code>\n\n"
-        "3️⃣ <b>Sửa Theme:</b>\n"
-        "• Sửa chữ: Gõ <code>/edit Tên Theme | Pass mới | Ngày mới</code>\n"
-        "• Đổi file: Gửi file mới -> Reply file đó bằng lệnh <code>/edit Tên Theme</code>\n\n"
-        "4️⃣ <b>Xóa Theme:</b> Gõ lệnh: <code>/del Tên_Theme_Cần_Xóa</code>\n\n"
-        "5️⃣ <b>Trạng thái hoạt động:</b> /status\n"
-        "6️⃣ <b>Bật/Tắt hệ thống:</b> <code>/run</code> (Bật Bot) hoặc <code>/stop</code> (Dừng Bot)\n"
-        "7️⃣ <b>Cấu hình nhóm:</b> /langs"
+        "1️⃣ <b>Thêm Theme:</b> Reply file tệp với: <code>/add Tên Theme | Mật Khẩu | Ngày</code>\n"
+        "2️⃣ <b>Thêm ảnh:</b> Reply ảnh với: <code>/addpv Tên_Theme</code>\n"
+        "3️⃣ <b>Sửa Theme:</b> <code>/edit Tên Theme | Pass mới | Ngày mới</code>\n"
+        "4️⃣ <b>Xóa Theme:</b> <code>/del Tên_Theme</code>\n"
+        "5️⃣ <b>Trạng thái:</b> /status\n"
+        "6️⃣ <b>Bật/Tắt Bot:</b> <code>/run</code> hoặc <code>/stop</code>\n"
+        "7️⃣ <b>Ngôn ngữ nhóm:</b> /langs"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_user.id != ADMIN_ID: return
-    if update.effective_chat.type != 'private': return
-
+    if update.effective_user.id != ADMIN_ID or update.effective_chat.type != 'private': return
     db_data = get_database()
-    theme_count = len(db_data)
-    user_count = get_user_count()
     current_status = "Đang chạy 🟢" if BOT_ACTIVE else "Đang tạm dừng bảo trì 🔴"
-
-    theme_list_text = ""
-    if db_data:
-        for i, (name, info) in enumerate(db_data.items(), 1):
-            theme_list_text += f"{i}. <code>{name}</code> (Pass: <code>{info['pass']}</code>)\n"
-    else:
-        theme_list_text = "<i>(Kho theme hiện tại chưa có dữ liệu)</i>"
-
-    admin_text = (
-        "📊 <b>BẢNG TRẠNG THÁI HỆ THỐNG</b>\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n"
-        f"⚙️ <b>Trạng thái:</b> <b>{current_status}</b>\n"
-        f"👥 <b>Tổng số Người dùng:</b> <code>{user_count}</code>\n"
-        f"🎨 <b>Tổng số Chủ đề (Theme):</b> <code>{theme_count}</code>\n\n"
-        f"📋 <b>DANH SÁCH TÊN THEME TRÊN KỆ:</b>\n"
-        f"{theme_list_text}"
-        "━━━━━━━━━━━━━━━━━━━━━\n"
+    theme_list_text = "".join([f"{i}. <code>{n}</code>\n" for i, n in enumerate(db_data.keys(), 1)]) if db_data else "<i>(Trống)</i>"
+    await update.message.reply_text(
+        f"📊 <b>BẢNG TRẠNG THÁI HỆ THỐNG</b>\n━━━━━━━━━━━━━━━━━━━━━\n"
+        f"⚙️ <b>Trạng thái:</b> <b>{current_status}</b>\n👥 <b>User:</b> <code>{get_user_count()}</code>\n"
+        f"🎨 <b>Theme:</b> <code>{len(db_data)}</code>\n\n📋 <b>DANH SÁCH THEME:</b>\n{theme_list_text}", parse_mode="HTML"
     )
-    await update.message.reply_text(admin_text, parse_mode="HTML")
 
 async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global BOT_ACTIVE
-    if update.effective_user.id != ADMIN_ID: return
-    if update.effective_chat.type != 'private': return
-    
-    BOT_ACTIVE = False
-    await update.message.reply_text("💤 <b>Hệ thống đã ĐÃ TẠM DỪNG!</b>\nNgười dùng thông thường sẽ không thể gõ lệnh hoặc bấm nút.", parse_mode="HTML")
+    if update.effective_user.id == ADMIN_ID and update.effective_chat.type == 'private':
+        BOT_ACTIVE = False
+        await update.message.reply_text("💤 <b>Hệ thống ĐÃ TẠM DỪNG!</b>")
 
 async def run_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global BOT_ACTIVE
-    if update.effective_user.id != ADMIN_ID: return
-    if update.effective_chat.type != 'private': return
-    
-    BOT_ACTIVE = True
-    await update.message.reply_text("🚀 <b>Hệ thống đã HOẠT ĐỘNG TRỞ LẠI!</b>\nNgười dùng đã có thể sử dụng bình thường.", parse_mode="HTML")
+    if update.effective_user.id == ADMIN_ID and update.effective_chat.type == 'private':
+        BOT_ACTIVE = True
+        await update.message.reply_text("🚀 <b>Hệ thống HOẠT ĐỘNG TRỞ LẠI!</b>")
 
 async def langs_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_user.id != ADMIN_ID: return
-    if update.effective_chat.type in ['group', 'supergroup']:
-        keyboard = [
-            [InlineKeyboardButton("Việt Nam 🇻🇳", callback_data="setlang_vi")],
-            [InlineKeyboardButton("English 🇬🇧", callback_data="setlang_en")]
-        ]
-        await update.message.reply_text(
-            "⚙️ <b>Cấu hình ngôn ngữ hiển thị mặc định của Bot trong nhóm:</b>\n<i>(Dành cho những người dùng mới chưa thiết lập ngôn ngữ cá nhân)</i>",
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+    if update.effective_user.id == ADMIN_ID and update.effective_chat.type in ['group', 'supergroup']:
+        keyboard = [[InlineKeyboardButton("Việt Nam 🇻🇳", callback_data="setlang_vi")],[InlineKeyboardButton("English 🇬🇧", callback_data="setlang_en")]]
+        await update.message.reply_text("⚙️ <b>Cấu hình ngôn ngữ mặc định của nhóm:</b>", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
 # --- HỆ THỐNG XỬ LÝ MEDIA / LỆNH QUẢN TRỊ CHO ADMIN ---
 async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = update.effective_user.id
-    if user_id != ADMIN_ID: return
-    if update.effective_chat.type != 'private': return
-
+    if update.effective_user.id != ADMIN_ID or update.effective_chat.type != 'private': return
     text = (update.message.text or update.message.caption or "").strip()
     target_msg = update.message.reply_to_message if update.message.reply_to_message else update.message
 
     if text.startswith("/del"):
         theme_to_delete = text.replace("/del", "").strip()
-        if not theme_to_delete:
-            await update.message.reply_text("❌ Vui lòng gõ: <code>/del Tên_Theme</code>", parse_mode="HTML")
-            return
         lines = []
         deleted = False
         if os.path.exists(DATABASE_FILE):
@@ -242,42 +185,32 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
             for line in lines:
                 if line.startswith(theme_to_delete + "="): deleted = True
                 else: f.write(line)
-        if deleted: await update.message.reply_text(f"🗑️ Đã xóa theme: <code>{theme_to_delete}</code>", parse_mode="HTML")
-        else: await update.message.reply_text(f"❌ Không tìm thấy theme <code>{theme_to_delete}</code>", parse_mode="HTML")
+        await update.message.reply_text(f"🗑️ Đã xóa theme: {theme_to_delete}" if deleted else f"❌ Không tìm thấy theme {theme_to_delete}")
 
     elif text.startswith("/edit"):
         try:
-            clean_text = text.replace("/edit", "").strip()
-            parts = clean_text.split('|')
+            parts = text.replace("/edit", "").strip().split('|')
             theme_name_target = parts[0].strip()
-            if not theme_name_target:
-                await update.message.reply_text("❌ Vui lòng cung cấp tên theme cần sửa!")
-                return
             lines = []
             updated = False
             if os.path.exists(DATABASE_FILE):
                 with open(DATABASE_FILE, 'r', encoding='utf-8') as f: lines = f.readlines()
             with open(DATABASE_FILE, 'w', encoding='utf-8') as f:
                 for line in lines:
-                    if '=' in line:
+                    if '=' in line and line.strip().split('=', 1)[0].strip() == theme_name_target:
                         name, rest = line.strip().split('=', 1)
-                        if name.strip() == theme_name_target:
-                            p = rest.split('|')
-                            file_id = target_msg.document.file_id if (target_msg and target_msg.document) else p[0].strip()
-                            pwd = parts[1].strip() if (len(parts) > 1 and parts[1].strip()) else p[1].strip()
-                            date = parts[2].strip() if (len(parts) > 2 and parts[2].strip()) else p[3].strip()
-                            f.write(f"{name}={file_id}|{pwd}|{p[2].strip()}|{date}\n")
-                            updated = True
-                        else: f.write(line)
+                        p = rest.split('|')
+                        file_id = target_msg.document.file_id if (target_msg and target_msg.document) else p[0].strip()
+                        pwd = parts[1].strip() if (len(parts) > 1 and parts[1].strip()) else p[1].strip()
+                        date = parts[2].strip() if (len(parts) > 2 and parts[2].strip()) else p[3].strip()
+                        f.write(f"{name}={file_id}|{pwd}|{p[2].strip()}|{date}\n")
+                        updated = True
                     else: f.write(line)
-            if updated: await update.message.reply_text(f"📝 Đã cập nhật thành công thông tin theme: <b>{theme_name_target}</b>", parse_mode="HTML")
-            else: await update.message.reply_text(f"❌ Không tìm thấy theme <code>{theme_name_target}</code>", parse_mode="HTML")
+            await update.message.reply_text(f"📝 Đã sửa theme: {theme_name_target}" if updated else f"❌ Không tìm thấy theme")
         except Exception as e: await update.message.reply_text(f"❌ Lỗi: {e}")
 
     elif text.startswith("/addpv"):
-        if not target_msg.photo:
-            await update.message.reply_text("❌ Hãy Reply vào tin nhắn ảnh!")
-            return
+        if not target_msg.photo: return await update.message.reply_text("❌ Hãy Reply vào tin nhắn ảnh!")
         try:
             theme_name_target = text.replace("/addpv", "").strip()
             lines = []
@@ -286,139 +219,83 @@ async def handle_admin_media(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 with open(DATABASE_FILE, 'r', encoding='utf-8') as f: lines = f.readlines()
             with open(DATABASE_FILE, 'w', encoding='utf-8') as f:
                 for line in lines:
-                    if '=' in line:
+                    if '=' in line and line.strip().split('=', 1)[0].strip() == theme_name_target:
                         name, rest = line.strip().split('=', 1)
-                        if name.strip() == theme_name_target:
-                            parts = rest.split('|')
-                            old_pv = parts[2].strip()
-                            new_pv = target_msg.photo[-1].file_id if old_pv.lower() == 'none' else f"{old_pv},{target_msg.photo[-1].file_id}"
-                            f.write(f"{name}={parts[0].strip()}|{parts[1].strip()}|{new_pv}|{parts[3].strip()}\n")
-                            updated = True
-                        else: f.write(line)
+                        parts = rest.split('|')
+                        new_pv = target_msg.photo[-1].file_id if parts[2].strip().lower() == 'none' else f"{parts[2].strip()},{target_msg.photo[-1].file_id}"
+                        f.write(f"{name}={parts[0].strip()}|{parts[1].strip()}|{new_pv}|{parts[3].strip()}\n")
+                        updated = True
                     else: f.write(line)
-            if updated: await update.message.reply_text(f"🖼️ Đã tích hợp ảnh vào theme <b>{theme_name_target}</b>", parse_mode="HTML")
-            else: await update.message.reply_text(f"❌ Không tìm thấy theme <b>{theme_name_target}</b>", parse_mode="HTML")
+            await update.message.reply_text(f"🖼️ Đã thêm ảnh vào theme {theme_name_target}" if updated else f"❌ Không tìm thấy theme")
         except Exception as e: await update.message.reply_text(f"❌ Lỗi: {e}")
             
     elif text.startswith("/add"):
-        if not target_msg.document:
-            await update.message.reply_text("❌ Hãy Reply vào tin nhắn chứa file!")
-            return
+        if not target_msg.document: return await update.message.reply_text("❌ Hãy Reply vào file!")
         try:
-            clean_text = text.replace("/add", "").strip()
-            parts = clean_text.split('|')
+            parts = text.replace("/add", "").strip().split('|')
             theme_name = parts[0].strip()
             pwd = parts[1].strip() if len(parts) > 1 else "None"
             date = parts[2].strip() if len(parts) > 2 else "Đang cập nhật"
-            with open(DATABASE_FILE, 'a', encoding='utf-8') as f:
-                f.write(f"{theme_name}={target_msg.document.file_id}|{pwd}|None|{date}\n")
-            await update.message.reply_text(f"✅ Đã thêm thành công theme mới: <code>{theme_name}</code>", parse_mode="HTML")
-        except Exception as e: await update.message.reply_text(f"❌ Sai cú pháp /add", parse_mode="HTML")
+            with open(DATABASE_FILE, 'a', encoding='utf-8') as f: f.write(f"{theme_name}={target_msg.document.file_id}|{pwd}|None|{date}\n")
+            await update.message.reply_text(f"✅ Đã thêm theme: {theme_name}")
+        except Exception as e: await update.message.reply_text(f"❌ Sai cú pháp /add")
             
     else:
-        if update.message.document: await update.message.reply_text(f"✅ <b>Mã File ID (Tệp):</b>\n<code>{update.message.document.file_id}</code>", parse_mode="HTML")
-        elif update.message.photo: await update.message.reply_text(f"✅ <b>Mã File ID (Ảnh):</b>\n<code>{update.message.photo[-1].file_id}</code>", parse_mode="HTML")
-        elif update.message.video: await update.message.reply_text(f"✅ <b>Mã File ID (Video):</b>\n<code>{update.message.video.file_id}</code>", parse_mode="HTML")
+        if update.message.document: await update.message.reply_text(f"✅ <b>File ID:</b>\n<code>{update.message.document.file_id}</code>", parse_mode="HTML")
+        elif update.message.photo: await update.message.reply_text(f"✅ <b>Photo ID:</b>\n<code>{update.message.photo[-1].file_id}</code>", parse_mode="HTML")
+        elif update.message.video: await update.message.reply_text(f"✅ <b>Video ID:</b>\n<code>{update.message.video.file_id}</code>", parse_mode="HTML")
 
 # ================= CORE FLOW USER =================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_chat.type in ['group', 'supergroup']: return 
     if not BOT_ACTIVE and update.effective_user.id != ADMIN_ID: return 
-
     track_user(update.effective_user.id)
-    keyboard = [
-        [InlineKeyboardButton("🇻🇳 Tiếng Việt", callback_data="lang_vi")], 
-        [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]
-    ]
-    welcome_text = (
-        "🇻🇳 Xin chào! Vui lòng chọn ngôn ngữ của bạn để bắt đầu sử dụng Bot.\n\n"
-        "🇬🇧 Hello! Please select your preferred language to start using the Bot."
-    )
-    await update.effective_message.reply_text(welcome_text, reply_markup=InlineKeyboardMarkup(keyboard))
+    keyboard = [[InlineKeyboardButton("💡 Tiếng Việt 🇻🇳", callback_data="lang_vi"), InlineKeyboardButton("English 🇬🇧", callback_data="lang_en")]]
+    await update.effective_message.reply_text("Chọn ngôn ngữ / Select language:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def theme_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not BOT_ACTIVE and update.effective_user.id != ADMIN_ID: return
-        
     chat_type = update.effective_chat.type
     user = update.effective_user
     track_user(user.id)
     
-    # --- ĐOẠN ĐƯỢC NÂNG CẤP XUẤT SẮC: Ép người dùng mới phải chọn ngôn ngữ ngay khi gõ /theme ---
     lang = context.user_data.get('lang')
     if not lang:
-        keyboard = [
-            [InlineKeyboardButton("Tiếng Việt 🇻🇳", callback_data="lang_vi"), 
-             InlineKeyboardButton("English 🇬🇧", callback_data="lang_en")]
-        ]
-        welcome_text = (
-            f"Hi {user.mention_html()}! 👋\n\n"
-            "🇻🇳 Vui lòng chọn ngôn ngữ của bạn để bắt đầu sử dụng Menu.\n"
-            "🇬🇧 Please select your preferred language to start using the Menu."
-        )
-        sent_msg = await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
-        if chat_type in ['group', 'supergroup']:
-            context.bot_data[f"owner_{sent_msg.message_id}"] = user.id
+        keyboard = [[InlineKeyboardButton("Tiếng Việt 🇻🇳", callback_data="lang_vi"), InlineKeyboardButton("English 🇬🇧", callback_data="lang_en")]]
+        sent_msg = await update.message.reply_text(f"Hi {user.mention_html()}! 👋\nChọn ngôn ngữ để mở Menu:", parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+        if chat_type in ['group', 'supergroup']: context.bot_data[f"owner_{sent_msg.message_id}"] = user.id
         return
 
     is_member = await check_membership(context, user.id, CHANNEL_ID) and await check_membership(context, user.id, GROUP_ID)
-    
     if not is_member:
-        keyboard = [
-            [InlineKeyboardButton(get_text(lang, 'btn_channel'), url=CHANNEL_URL), InlineKeyboardButton(get_text(lang, 'btn_group'), url=GROUP_URL)],
-            [InlineKeyboardButton(get_text(lang, 'btn_verify'), callback_data="verify_join")]
-        ]
+        keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_channel'), url=CHANNEL_URL), InlineKeyboardButton(get_text(lang, 'btn_group'), url=GROUP_URL)], [InlineKeyboardButton(get_text(lang, 'btn_verify'), callback_data="verify_join")]]
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'join_req')}"
     else:
         support_url = f"https://t.me/{ADMIN_USERNAME}" if ADMIN_USERNAME else f"tg://user?id={ADMIN_ID}"
-        keyboard = [
-            [InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],
-            [InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],
-            [InlineKeyboardButton(get_text(lang, 'btn_guide'), callback_data="mode_guide")],
-            [
-                InlineKeyboardButton(get_text(lang, 'btn_donate'), callback_data="mode_donate"),
-                InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)
-            ]
-        ]
+        keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],[InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],[InlineKeyboardButton(get_text(lang, 'btn_guide'), callback_data="mode_guide")],[InlineKeyboardButton(get_text(lang, 'btn_donate'), callback_data="mode_donate"), InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)]]
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'main_menu')}"
         
     sent_msg = await update.message.reply_text(msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
-    if chat_type in ['group', 'supergroup']:
-        context.bot_data[f"owner_{sent_msg.message_id}"] = user.id
+    if chat_type in ['group', 'supergroup']: context.bot_data[f"owner_{sent_msg.message_id}"] = user.id
 
 async def check_and_show_menu(query, context, lang, show_alert=False):
     user = query.from_user
-    track_user(user.id)
     is_member = await check_membership(context, user.id, CHANNEL_ID) and await check_membership(context, user.id, GROUP_ID)
-    
     if not is_member:
         if show_alert: await query.answer(get_text(lang, 'verify_fail'), show_alert=True)
-        keyboard = [
-            [InlineKeyboardButton(get_text(lang, 'btn_channel'), url=CHANNEL_URL), InlineKeyboardButton(get_text(lang, 'btn_group'), url=GROUP_URL)],
-            [InlineKeyboardButton(get_text(lang, 'btn_verify'), callback_data="verify_join")]
-        ]
+        keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_channel'), url=CHANNEL_URL), InlineKeyboardButton(get_text(lang, 'btn_group'), url=GROUP_URL)], [InlineKeyboardButton(get_text(lang, 'btn_verify'), callback_data="verify_join")]]
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'join_req')}"
     else:
         support_url = f"https://t.me/{ADMIN_USERNAME}" if ADMIN_USERNAME else f"tg://user?id={ADMIN_ID}"
-        keyboard = [
-            [InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],
-            [InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],
-            [InlineKeyboardButton(get_text(lang, 'btn_guide'), callback_data="mode_guide")],
-            [
-                InlineKeyboardButton(get_text(lang, 'btn_donate'), callback_data="mode_donate"),
-                InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)
-            ]
-        ]
+        keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_themes'), callback_data="mode_themes")],[InlineKeyboardButton(get_text(lang, 'btn_pass'), callback_data="mode_password")],[InlineKeyboardButton(get_text(lang, 'btn_guide'), callback_data="mode_guide")],[InlineKeyboardButton(get_text(lang, 'btn_donate'), callback_data="mode_donate"), InlineKeyboardButton(get_text(lang, 'btn_support'), url=support_url)]]
         msg_text = f"Hi {user.mention_html()}! 👋\n{get_text(lang, 'main_menu')}"
-        
     try:
         if query.message.video or query.message.photo or query.message.document:
             await query.message.delete()
             await context.bot.send_message(chat_id=query.message.chat_id, text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
-        else:
-            await query.edit_message_text(text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
-    except Exception as e:
-        await context.bot.send_message(chat_id=query.message.chat_id, text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+        else: await query.edit_message_text(text=msg_text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+    except: pass
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -427,35 +304,29 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user_clicking = query.from_user.id
     
     if not BOT_ACTIVE and user_clicking != ADMIN_ID: 
-        await query.answer("⚠️ Bot hiện đang tạm dừng để bảo trì hệ thống!", show_alert=True)
+        await query.answer("⚠️ Bot đang tạm dừng bảo trì!", show_alert=True)
         return
 
-    # Chốt chặn bảo mật chống bấm nhầm menu
     if chat_type in ['group', 'supergroup']:
         owner_id = context.bot_data.get(f"owner_{query.message.message_id}")
         if owner_id and user_clicking != owner_id and user_clicking != ADMIN_ID:
-            await query.answer("❌ Menu này do người khác gọi. Hãy gõ /theme để tự tạo menu riêng của bạn!", show_alert=True)
+            await query.answer("❌ Menu này của người khác. Hãy gõ /theme để tự tạo riêng!", show_alert=True)
             return
 
-    # Gõ lệnh chọn ngôn ngữ gốc hoặc mượn tạm của group
     lang = context.user_data.get('lang')
-    if not lang and not data.startswith("lang_"):
-        lang = context.chat_data.get('lang', 'vi') if chat_type in ['group', 'supergroup'] else 'en'
+    if not lang and not data.startswith("lang_"): lang = context.chat_data.get('lang', 'vi')
 
     if data.startswith("setlang_"):
         if user_clicking != ADMIN_ID: return
-        new_lang = data.split('_')[1]
-        context.chat_data['lang'] = new_lang
-        await query.answer("✅ Đã cập nhật ngôn ngữ nhóm!", show_alert=True)
-        msg = f"⚙️ Ngôn ngữ hiển thị mặc định của nhóm đã chuyển sang: <b>Tiếng Việt</b> 🇻🇳" if new_lang == 'vi' else "⚙️ Default group display language has been switched to: <b>English</b> 🇬🇧"
-        await query.edit_message_text(msg, parse_mode="HTML")
+        context.chat_data['lang'] = data.split('_')[1]
+        await query.answer("✅ Đã cập nhật cài đặt nhóm!", show_alert=True)
+        await query.message.delete()
         return
 
-    # --- ĐOẠN ĐƯỢC NÂNG CẤP: Khi bấm nút chọn ngôn ngữ, lưu lại rồi tự nhảy sang bước check Kênh/Nhóm luôn ---
     if data.startswith("lang_"):
         lang = data.split('_')[1]
         context.user_data['lang'] = lang
-        await query.answer("Cài đặt ngôn ngữ thành công! 👌" if lang=='vi' else "Language set successfully! 👌")
+        await query.answer()
         await check_and_show_menu(query, context, lang)
         return
 
@@ -470,7 +341,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await query.message.delete()
                 keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")]]
                 await context.bot.send_video(chat_id=query.message.chat_id, video=GUIDE_VIDEO_ID, caption=get_text(lang, 'guide_text'), parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
-            except Exception as e: await query.message.reply_text("❌ Lỗi tải video hướng dẫn.")
+            except: pass
         else: await query.answer(get_text(lang, 'no_guide_video'), show_alert=True)
 
     elif data == "mode_donate":
@@ -480,7 +351,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             try:
                 await query.message.delete()
                 await context.bot.send_photo(chat_id=query.message.chat_id, photo=DONATE_IMAGE_ID, caption=get_text(lang, 'donate_text'), parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
-            except Exception as e: await query.message.reply_text("❌ Có lỗi xảy ra.")
+            except: pass
         else: await query.edit_message_text(get_text(lang, 'donate_text'), reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
     elif data == "mode_password":
@@ -500,7 +371,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             return
         keyboard = [[InlineKeyboardButton(f"🎨 {name}", callback_data=f"sel_{name[:40]}")] for name in db.keys()]
         keyboard.append([InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_start")])
-        await query.edit_message_text(f"📁 <b>{get_text(lang, 'btn_themes')}</b>:\nChọn theme cần xem dưới đây:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        await query.edit_message_text(f"📁 <b>{get_text(lang, 'btn_themes')}</b>:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
     elif data.startswith("sel_"):
         await query.answer()
@@ -508,14 +379,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         db = get_database() 
         actual_name = next((n for n in db.keys() if n.startswith(short_name)), None)
         if actual_name:
-            pwd = db[actual_name]['pass']
-            date = db[actual_name]['date']
-            keyboard = [
-                [InlineKeyboardButton(get_text(lang, 'btn_download'), callback_data=f"dl_{short_name}")],
-                [InlineKeyboardButton(get_text(lang, 'btn_view_preview'), callback_data=f"pv_{short_name}")],
-                [InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_themes")]
-            ]
-            await query.edit_message_text(get_text(lang, 'theme_title', name=actual_name, pwd=pwd, date=date), reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+            keyboard = [[InlineKeyboardButton(get_text(lang, 'btn_download'), callback_data=f"dl_{short_name}")],[InlineKeyboardButton(get_text(lang, 'btn_view_preview'), callback_data=f"pv_{short_name}")],[InlineKeyboardButton(get_text(lang, 'btn_back'), callback_data="mode_themes")]]
+            await query.edit_message_text(get_text(lang, 'theme_title', name=actual_name, pwd=db[actual_name]['pass'], date=db[actual_name]['date']), reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
         else: await query.answer(get_text(lang, 'not_found'), show_alert=True)
 
     elif data.startswith("dl_"):
@@ -524,9 +389,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         actual_name = next((n for n in db.keys() if n.startswith(short_name)), None)
         if actual_name:
             await query.answer()
-            file_id, pwd = db[actual_name]['id'], db[actual_name]['pass']
-            try: await query.message.reply_document(document=file_id, caption=f"🎨 <b>{actual_name}</b>\n🔑 Pass: <code>{pwd}</code>", parse_mode="HTML")
-            except: await query.message.reply_text("❌ Lỗi tải tệp.")
+            try: await query.message.reply_document(document=db[actual_name]['id'], caption=f"🎨 <b>{actual_name}</b>\n🔑 Pass: <code>{db[actual_name]['pass']}</code>", parse_mode="HTML")
+            except: pass
         else: await query.answer(get_text(lang, 'not_found'), show_alert=True)
 
     elif data.startswith("pv_"):
@@ -539,31 +403,22 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await query.answer()
                 try:
                     photo_ids = [pid.strip() for pid in preview_id.split(',')]
-                    if len(photo_ids) == 1:
-                        await query.message.reply_photo(photo=photo_ids[0], caption=f"🖼️ Ảnh preview: <b>{actual_name}</b>", parse_mode="HTML")
+                    if len(photo_ids) == 1: await query.message.reply_photo(photo=photo_ids[0], caption=f"🖼️ Ảnh preview: <b>{actual_name}</b>", parse_mode="HTML")
                     else:
                         media_group = [InputMediaPhoto(media=pid, caption=f"🖼️ Ảnh preview: <b>{actual_name}</b>" if i == 0 else None, parse_mode="HTML") for i, pid in enumerate(photo_ids)]
                         await context.bot.send_media_group(chat_id=query.message.chat_id, media=media_group)
-                except: await query.message.reply_text("❌ Lỗi hiển thị ảnh.")
+                except: pass
             else: await query.answer(get_text(lang, 'no_preview'), show_alert=True)
         else: await query.answer(get_text(lang, 'not_found'), show_alert=True)
 
 def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
-    
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("run", run_command))
-    application.add_handler(CommandHandler("stop", stop_command))
-    application.add_handler(CommandHandler("theme", theme_command))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("langs", langs_command))
-    application.add_handler(CommandHandler("status", status_command)) 
-    
-    application.add_handler(CallbackQueryHandler(button_callback))
-    application.add_handler(MessageHandler(filters.COMMAND | filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media))
-    
-    print("🤖 Bot đang chạy (Đã tối ưu hóa trải nghiệm chặn ép chọn ngôn ngữ ngay từ đầu)...")
+    application.add_handlers([
+        CommandHandler("start", start), CommandHandler("run", run_command), CommandHandler("stop", stop_command),
+        CommandHandler("theme", theme_command), CommandHandler("help", help_command), CommandHandler("langs", langs_command), CommandHandler("status", status_command),
+        CallbackQueryHandler(button_callback), MessageHandler(filters.COMMAND | filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media)
+    ])
+    print("🤖 Bot đang chạy (Đã vá lỗi chống ký tự ẩn BOM từ Notepad)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
-if __name__ == '__main__':
-    main()
+if __name__ == '__main__': main()
