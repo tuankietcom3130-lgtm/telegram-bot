@@ -7,9 +7,9 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 from telegram.error import TelegramError
 
 # Load environment variables
-load_dotenv()
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+load_dotenv(env_path)
+logging.basicConfig(...)
 
 # Lấy dữ liệu từ .env
 BOT_TOKEN = os.getenv('BOT_TOKEN')
