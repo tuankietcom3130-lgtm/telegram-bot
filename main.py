@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import os
+import asyncio
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
@@ -87,6 +88,15 @@ def get_user_count() -> int:
                 return len(set(lines))
         except: pass
     return 0
+
+# --- HÀM TỰ ĐỘNG XÓA TIN NHẮN (CHẠY NGẦM) ---
+async def delete_delayed(bot, chat_id, message_ids, delay):
+    await asyncio.sleep(delay)
+    for msg_id in message_ids:
+        try:
+            await bot.delete_message(chat_id=chat_id, message_id=msg_id)
+        except:
+            pass
 
 # --- TỪ ĐIỂN SONG NGỮ ---
 LANG = {
@@ -393,6 +403,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             except: pass
         else: await query.answer(get_text(lang, 'not_found'), show_alert=True)
 
+    # --- TÍNH NĂNG MỚI: TỰ ĐỘNG XÓA ẢNH SAU 60 GIÂY ---
     elif data.startswith("pv_"):
         short_name = data.split('pv_', 1)[1]
         db = get_database() 
@@ -400,13 +411,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if actual_name:
             preview_id = db[actual_name]['preview']
             if preview_id and preview_id.lower() != 'none':
-                await query.answer()
+                await query.answer("Đang tải ảnh... (Sẽ tự xóa sau 1 phút) ⏳")
                 try:
                     photo_ids = [pid.strip() for pid in preview_id.split(',')]
-                    if len(photo_ids) == 1: await query.message.reply_photo(photo=photo_ids[0], caption=f"🖼️ Ảnh preview: <b>{actual_name}</b>", parse_mode="HTML")
+                    sent_msgs = []
+                    
+                    if len(photo_ids) == 1: 
+                        msg = await query.message.reply_photo(photo=photo_ids[0], caption=f"🖼️ Ảnh preview: <b>{actual_name}</b>\n⏳ <i>Tự động xóa sau 60s</i>", parse_mode="HTML")
+                        sent_msgs.append(msg)
                     else:
-                        media_group = [InputMediaPhoto(media=pid, caption=f"🖼️ Ảnh preview: <b>{actual_name}</b>" if i == 0 else None, parse_mode="HTML") for i, pid in enumerate(photo_ids)]
-                        await context.bot.send_media_group(chat_id=query.message.chat_id, media=media_group)
+                        media_group = [InputMediaPhoto(media=pid, caption=f"🖼️ Ảnh preview: <b>{actual_name}</b>\n⏳ <i>Tự động xóa sau 60s</i>" if i == 0 else None, parse_mode="HTML") for i, pid in enumerate(photo_ids)]
+                        msgs = await context.bot.send_media_group(chat_id=query.message.chat_id, media=media_group)
+                        sent_msgs.extend(msgs)
+                    
+                    # Lấy danh sách Message ID vừa gửi và hẹn giờ thu hồi
+                    msg_ids = [m.message_id for m in sent_msgs]
+                    asyncio.create_task(delete_delayed(context.bot, query.message.chat_id, msg_ids, 60))
+                
                 except: pass
             else: await query.answer(get_text(lang, 'no_preview'), show_alert=True)
         else: await query.answer(get_text(lang, 'not_found'), show_alert=True)
@@ -418,7 +439,7 @@ def main() -> None:
         CommandHandler("theme", theme_command), CommandHandler("help", help_command), CommandHandler("langs", langs_command), CommandHandler("status", status_command),
         CallbackQueryHandler(button_callback), MessageHandler(filters.COMMAND | filters.Document.ALL | filters.PHOTO | filters.VIDEO, handle_admin_media)
     ])
-    print("🤖 Bot đang chạy (Đã vá lỗi chống ký tự ẩn BOM từ Notepad)...")
+    print("🤖 Bot đang chạy (Đã bật tính năng tự động xóa ảnh Preview sau 1 phút)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__': main()
